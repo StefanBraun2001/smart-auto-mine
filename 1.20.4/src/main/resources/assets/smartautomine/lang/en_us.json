@@ -1,0 +1,61 @@
+{
+	"key.categories.smartautomine": "Smart Auto Mine",
+	"key.smartautomine.toggle": "Toggle Auto Mine (regular)",
+	"key.smartautomine.toggle_place_mine": "Toggle Auto Mine (place-mine)",
+
+	"text.autoconfig.smartautomine.title": "Smart Auto Mine",
+
+	"text.autoconfig.smartautomine.option.minDurability": "Min durability (0 = disabled)",
+	"text.autoconfig.smartautomine.option.minDurability.@Tooltip": "Stop (or switch tools, if Use more tools is on) before the current tool's remaining durability drops below this absolute value.",
+
+	"text.autoconfig.smartautomine.option.minDurabilityPercent": "Min durability % (0 = disabled)",
+	"text.autoconfig.smartautomine.option.minDurabilityPercent.@Tooltip": "Stop (or switch tools, if Use more tools is on) before the current tool's remaining durability drops below this percentage.",
+
+	"text.autoconfig.smartautomine.option.hungerSafetyStopEnabled": "Hunger safety stop",
+	"text.autoconfig.smartautomine.option.hungerSafetyStopEnabled.@Tooltip": "On (default): auto-disable if your hunger drops below the threshold below, independent of the auto-eat feature. A safety net for hardcore/no-food-on-hand situations.",
+
+	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold": "Hunger safety threshold",
+	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold.@Tooltip": "Stop when hunger drops below this value, on the vanilla 0-20 hunger scale (20 = full, each drumstick icon = 2 points). Only used while Hunger safety stop above is on.",
+
+	"text.autoconfig.smartautomine.option.maxDuration": "Max duration (empty = unlimited)",
+	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "Free text, e.g. '90m', '1.5h', '5400s', '1h30m', or a bare number of seconds. Auto-disable after this long, even if durability isn't exhausted.",
+
+	"text.autoconfig.smartautomine.option.useMoreTools": "Use more tools",
+	"text.autoconfig.smartautomine.option.useMoreTools.@Tooltip": "Off (default): stop as soon as the current tool's durability guard triggers. On: instead, look for another matching tool (see Tool keyword below) elsewhere in your hotbar and switch to it, only stopping once none are left with enough durability.",
+
+	"text.autoconfig.smartautomine.option.toolKeyword": "Tool keyword",
+	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "Used when Use more tools is on. Substring match (case-insensitive) against the tool's item ID, e.g. 'pickaxe' matches minecraft:diamond_pickaxe, minecraft:netherite_pickaxe, etc.",
+
+	"text.autoconfig.smartautomine.option.placeMineIntervalTicks": "Place-mine delay (ticks)",
+	"text.autoconfig.smartautomine.option.placeMineIntervalTicks.@Tooltip": "Used when Randomize place-mine delay is off. Ticks to wait between offhand place attempts while place-mine mode is running. Placing every single tick is faster than the manual 'hold both mouse buttons + F3+T glitch' technique this mode replaces - raise this if it still feels too fast, lower it (down to 0) for as-fast-as-possible placing.",
+
+	"text.autoconfig.smartautomine.option.randomizePlaceMineDelay": "Randomize place-mine delay",
+	"text.autoconfig.smartautomine.option.randomizePlaceMineDelay.@Tooltip": "Off (default): use the fixed Place-mine delay above every time. On: pick a random delay between the min/max below each time instead, closer to how the manual F3+T glitch technique behaves in practice (it isn't perfectly consistent either).",
+
+	"text.autoconfig.smartautomine.option.placeMineIntervalMin": "Place-mine delay min (ticks)",
+	"text.autoconfig.smartautomine.option.placeMineIntervalMin.@Tooltip": "Used when Randomize place-mine delay is on.",
+
+	"text.autoconfig.smartautomine.option.placeMineIntervalMax": "Place-mine delay max (ticks)",
+	"text.autoconfig.smartautomine.option.placeMineIntervalMax.@Tooltip": "Used when Randomize place-mine delay is on.",
+
+	"text.autoconfig.smartautomine.option.feedbackMode": "Feedback message",
+	"text.autoconfig.smartautomine.option.feedbackMode.@Tooltip": "How to notify you when auto-mine toggles or auto-stops.",
+
+	"text.autoconfig.smartautomine.option.waitAfterEatEnabled": "Wait after eat",
+	"text.autoconfig.smartautomine.option.waitAfterEatEnabled.@Tooltip": "On (default): after finishing a bite, wait an extra 0.5 seconds before resuming mining, as a safety buffer. Off: resume mining almost immediately after eating finishes.",
+
+	"text.autoconfig.smartautomine.option.playSoundOnAutoStop": "Play sound on auto-stop",
+	"text.autoconfig.smartautomine.option.playSoundOnAutoStop.@Tooltip": "On (default): play the sound below whenever the mod stops itself (hunger safety, durability/no usable tool, time limit, offhand empty). Does not play when you manually toggle it off yourself.",
+
+	"text.autoconfig.smartautomine.option.autoStopSound": "Auto-stop sound",
+	"text.autoconfig.smartautomine.option.autoStopSound.@Tooltip": "Full sound event ID to play on auto-stop, e.g. minecraft:block.bell.use, minecraft:entity.experience_orb.pickup, minecraft:entity.villager.no. Invalid/unknown IDs simply play nothing.",
+
+	"text.autoconfig.smartautomine.option.autoEatSlot": "Auto-eat hotbar slot (0 = off)",
+	"text.autoconfig.smartautomine.option.autoEatSlot.@Tooltip": "Hotbar slot (1-9) holding your food item. 0 disables auto-eat.",
+
+	"text.autoconfig.smartautomine.option.autoEatHungerThreshold": "Auto-eat hunger threshold",
+	"text.autoconfig.smartautomine.option.autoEatHungerThreshold.@Tooltip": "Eat a bite when your hunger drops below this value, on the vanilla 0-20 hunger scale (same as the hunger bar: 20 = full, each drumstick icon = 2 points, so 10 = half the bar).",
+
+	"text.autoconfig.smartautomine.option.foodSafetyPreset": "Auto-eat food safety",
+	"text.autoconfig.smartautomine.option.foodSafetyPreset.@Tooltip": "LIGHT (default): blocks only enchanted golden apple and pufferfish. FOOD_INSPECTOR: also blocks rotten flesh, spider eye, raw chicken, and poisonous potato. RAT: no extra blocks. Cake and chorus fruit are always blocked no matter the preset."
+}
