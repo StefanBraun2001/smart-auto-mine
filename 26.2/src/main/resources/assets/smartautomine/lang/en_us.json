@@ -1,5 +1,5 @@
 {
-	"key.categories.smartautomine": "Smart Auto Mine",
+	"key.categories.smartautomine.main": "Smart Auto Mine",
 	"key.smartautomine.toggle": "Toggle Auto Mine (regular)",
 	"key.smartautomine.toggle_place_mine": "Toggle Auto Mine (place-mine)",
 
@@ -16,6 +16,12 @@
 
 	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold": "Hunger safety threshold",
 	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold.@Tooltip": "Stop when hunger drops below this value, on the vanilla 0-20 hunger scale (20 = full, each drumstick icon = 2 points). Only used while Hunger safety stop above is on.",
+
+	"text.autoconfig.smartautomine.option.healthSafetyStopEnabled": "Health safety stop",
+	"text.autoconfig.smartautomine.option.healthSafetyStopEnabled.@Tooltip": "On (default): auto-disable if your health drops below the threshold below, on the vanilla 0-20 health scale (20 = full, each heart icon = 2 points). A safety net independent of everything else.",
+
+	"text.autoconfig.smartautomine.option.healthSafetyStopThreshold": "Health safety threshold",
+	"text.autoconfig.smartautomine.option.healthSafetyStopThreshold.@Tooltip": "Stop when health drops below this value, on the vanilla 0-20 health scale (20 = full, each heart icon = 2 points). Only used while Health safety stop above is on.",
 
 	"text.autoconfig.smartautomine.option.maxDuration": "Max duration (empty = unlimited)",
 	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "Free text, e.g. '90m', '1.5h', '5400s', '1h30m', or a bare number of seconds. Auto-disable after this long, even if durability isn't exhausted.",
@@ -49,6 +55,12 @@
 
 	"text.autoconfig.smartautomine.option.autoStopSound": "Auto-stop sound",
 	"text.autoconfig.smartautomine.option.autoStopSound.@Tooltip": "Full sound event ID to play on auto-stop, e.g. minecraft:block.bell.use, minecraft:entity.experience_orb.pickup, minecraft:entity.villager.no. Invalid/unknown IDs simply play nothing.",
+
+	"text.autoconfig.smartautomine.option.resumeAfterManualReconnect": "Resume after manual reconnect",
+	"text.autoconfig.smartautomine.option.resumeAfterManualReconnect.@Tooltip": "Off (default): if you reconnect yourself (not via the separate Smart Auto Reconnect mod), the mod turns itself off rather than silently resuming. On: it stays on and resumes after a short settle buffer, same as a scripted reconnect always does regardless of this setting.",
+
+	"text.autoconfig.smartautomine.option.autoEatEnabled": "Auto-eat enabled",
+	"text.autoconfig.smartautomine.option.autoEatEnabled.@Tooltip": "On (default): auto-eat is active whenever the hotbar slot below is set. Off: auto-eat never triggers, regardless of the hotbar slot - a quick way to disable eating without losing your configured slot/threshold.",
 
 	"text.autoconfig.smartautomine.option.autoEatSlot": "Auto-eat hotbar slot (0 = off)",
 	"text.autoconfig.smartautomine.option.autoEatSlot.@Tooltip": "Hotbar slot (1-9) holding your food item. 0 disables auto-eat.",

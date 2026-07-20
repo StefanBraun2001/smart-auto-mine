@@ -5,10 +5,10 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **A0.3** (alpha, tested), built separately for **MC 1.20.4**
-(`1.20.4/`) and **MC 26.2** (`26.2/`) - same features and config schema on
-both. Grab built jars from the [Releases](../../releases) page, or build
-from source with `./gradlew build` inside either version folder.
+Current build: **A0.4** (alpha, tested), **MC 26.2 only** (1.20.4 support
+was dropped as of A0.4). Grab a built jar from the
+[Releases](../../releases) page, or build from source with
+`./gradlew build` inside `26.2/`.
 
 ## Install
 
@@ -20,14 +20,23 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
 - Two separate toggle keybinds: regular mining (default **K**) and
   place-mine mode (default **L**) - only one runs at a time.
 - Replicates vanilla's own hold-to-break behavior.
-- Stop conditions: min durability (absolute/%), hunger safety stop, max
-  duration.
+- Stop conditions: min durability (absolute/%), hunger safety stop, health
+  safety stop, max duration.
 - "Use more tools": rotates to another hotbar item matching a keyword when
   the current tool's durability guard trips.
 - Place-mine mode: right-clicks with the offhand item every tick (with
   configurable, optionally randomized delay) to auto-wall-in behind you
   while tunneling.
 - Auto-eat, identical to Smart Auto Attack.
+- **Presets**: named bundles of duration/durability/tool-rotation/auto-eat
+  settings, managed via client-side commands
+  (`/smartautomine preset list|apply|save|delete`). Ships with
+  `Pickaxe_TP`, `Pickaxe_MT_TP`, `Pickaxe_MT_AEHP`, and
+  `Pickaxe_MT_TP_AEHP` - see the bundled README for what each one sets.
+- Auto-resumes after a reconnect handled by the separate
+  [Smart Auto Reconnect](https://github.com/StefanBraun2001/smart-auto-reconnect)
+  mod; optional "resume after manual reconnect" toggle for reconnects you
+  initiate yourself.
 - Auto-stop sound feedback.
 
 Full feature/config documentation lives in the bundled README shipped
@@ -35,15 +44,12 @@ alongside the jars.
 
 ## Building from source
 
-Each version folder is a self-contained Gradle/Loom project:
-
 ```
-cd 1.20.4   # or 26.2
+cd 26.2
 ./gradlew build
 ```
 
-Built jar lands in `build/libs/`. 1.20.4 needs JDK 21 to run Gradle/Loom
-(compiles to Java 17); 26.2 needs JDK 25.
+Built jar lands in `26.2/build/libs/`. Needs JDK 25.
 
 ## Credits
 

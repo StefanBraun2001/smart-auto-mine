@@ -13,7 +13,6 @@ public class MinePreset {
 	public String toolKeyword = "pickaxe";
 	public boolean autoEatEnabled = true;
 	public int autoEatHungerThreshold = 20;
-	public SmartAutoMineConfig.FoodSafetyPreset foodSafetyPreset = SmartAutoMineConfig.FoodSafetyPreset.LIGHT;
 	public boolean hungerSafetyStopEnabled = true;
 	public int hungerSafetyStopThreshold = 6;
 
@@ -26,7 +25,6 @@ public class MinePreset {
 		preset.toolKeyword = config.toolKeyword;
 		preset.autoEatEnabled = config.autoEatEnabled;
 		preset.autoEatHungerThreshold = config.autoEatHungerThreshold;
-		preset.foodSafetyPreset = config.foodSafetyPreset;
 		preset.hungerSafetyStopEnabled = config.hungerSafetyStopEnabled;
 		preset.hungerSafetyStopThreshold = config.hungerSafetyStopThreshold;
 		return preset;
@@ -40,8 +38,53 @@ public class MinePreset {
 		config.toolKeyword = toolKeyword;
 		config.autoEatEnabled = autoEatEnabled;
 		config.autoEatHungerThreshold = autoEatHungerThreshold;
-		config.foodSafetyPreset = foodSafetyPreset;
 		config.hungerSafetyStopEnabled = hungerSafetyStopEnabled;
 		config.hungerSafetyStopThreshold = hungerSafetyStopThreshold;
+	}
+
+	public static MinePreset pickaxeMtTpAehp() {
+		MinePreset preset = new MinePreset();
+		preset.minDurability = 10;
+		preset.minDurabilityPercent = 5;
+		preset.useMoreTools = true;
+		preset.autoEatEnabled = true;
+		preset.autoEatHungerThreshold = 7;
+		preset.hungerSafetyStopEnabled = true;
+		preset.hungerSafetyStopThreshold = 3;
+		return preset;
+	}
+
+	public static MinePreset pickaxeMtTp() {
+		MinePreset preset = new MinePreset();
+		preset.minDurability = 10;
+		preset.minDurabilityPercent = 5;
+		preset.useMoreTools = true;
+		preset.autoEatEnabled = false;
+		preset.autoEatHungerThreshold = 7;
+		preset.hungerSafetyStopEnabled = false;
+		preset.hungerSafetyStopThreshold = 3;
+		return preset;
+	}
+
+	public static MinePreset pickaxeTp() {
+		MinePreset preset = new MinePreset();
+		preset.minDurability = 10;
+		preset.minDurabilityPercent = 5;
+		preset.useMoreTools = false;
+		preset.autoEatEnabled = false;
+		preset.autoEatHungerThreshold = 7;
+		preset.hungerSafetyStopEnabled = false;
+		preset.hungerSafetyStopThreshold = 3;
+		return preset;
+	}
+
+	public static MinePreset pickaxeMtAehp() {
+		MinePreset preset = new MinePreset();
+		preset.useMoreTools = true;
+		preset.autoEatEnabled = true;
+		preset.autoEatHungerThreshold = 7;
+		preset.hungerSafetyStopEnabled = true;
+		preset.hungerSafetyStopThreshold = 3;
+		return preset;
 	}
 }

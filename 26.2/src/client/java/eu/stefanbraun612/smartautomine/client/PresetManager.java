@@ -56,10 +56,14 @@ public class PresetManager {
 					result.putAll(loaded);
 				}
 			} catch (IOException | RuntimeException ignored) {
-				// Corrupt/unreadable presets file - fall back to an empty set rather than
-				// crashing the mod over a non-essential feature.
+				// Corrupt/unreadable presets file - fall back to just the built-in presets
+				// below rather than crashing the mod over a non-essential feature.
 			}
 		}
+		result.putIfAbsent("Pickaxe_MT_TP_AEHP", MinePreset.pickaxeMtTpAehp());
+		result.putIfAbsent("Pickaxe_MT_TP", MinePreset.pickaxeMtTp());
+		result.putIfAbsent("Pickaxe_TP", MinePreset.pickaxeTp());
+		result.putIfAbsent("Pickaxe_MT_AEHP", MinePreset.pickaxeMtAehp());
 		return result;
 	}
 
