@@ -48,6 +48,11 @@ public class AutoMineLogic {
 			return;
 		}
 
+		if (!passesHealthSafety(player, config)) {
+			stop(client, config, "Smart Auto Mine: stopped (health too low)");
+			return;
+		}
+
 		if (!ensureUsableTool(client, player, config)) {
 			stop(client, config, "Smart Auto Mine: stopped (no usable tool left)");
 			return;
@@ -137,6 +142,13 @@ public class AutoMineLogic {
 			return true;
 		}
 		return player.getFoodData().getFoodLevel() >= config.hungerSafetyStopThreshold;
+	}
+
+	private static boolean passesHealthSafety(Player player, SmartAutoMineConfig config) {
+		if (!config.healthSafetyStopEnabled) {
+			return true;
+		}
+		return player.getHealth() >= config.healthSafetyStopThreshold;
 	}
 
 	// Returns true if the main hand currently holds a tool with enough durability to

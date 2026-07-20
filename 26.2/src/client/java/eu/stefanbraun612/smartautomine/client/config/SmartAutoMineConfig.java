@@ -21,6 +21,12 @@ public class SmartAutoMineConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public int hungerSafetyStopThreshold = 6; // hunger points, 0-20 scale
 
+	@ConfigEntry.Gui.Tooltip
+	public boolean healthSafetyStopEnabled = true;
+
+	@ConfigEntry.Gui.Tooltip
+	public float healthSafetyStopThreshold = 6; // health points, 0-20 scale (each heart = 2 points)
+
 	// --- Timing ---
 
 	@ConfigEntry.Gui.Tooltip
@@ -70,6 +76,9 @@ public class SmartAutoMineConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public String autoStopSound = "minecraft:block.bell.use"; // full sound event ID
 
+	@ConfigEntry.Gui.Tooltip
+	public boolean resumeAfterManualReconnect = false; // scripted reconnects (Smart Auto Reconnect) always resume regardless of this
+
 	// --- Auto-eat (same infra as Smart Auto Attack) ---
 
 	public enum FoodSafetyPreset {
@@ -77,6 +86,9 @@ public class SmartAutoMineConfig implements ConfigData {
 		FOOD_INSPECTOR,
 		RAT
 	}
+
+	@ConfigEntry.Gui.Tooltip
+	public boolean autoEatEnabled = true;
 
 	@ConfigEntry.Gui.Tooltip
 	public int autoEatSlot = 0; // 0 = disabled, 1-9 hotbar slot

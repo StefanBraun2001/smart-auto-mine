@@ -69,7 +69,7 @@ public class AutoEatLogic {
 			return;
 		}
 
-		if (config.autoEatSlot <= 0) {
+		if (!config.autoEatEnabled || config.autoEatSlot <= 0) {
 			return;
 		}
 		if (player.getFoodData().getFoodLevel() >= config.autoEatHungerThreshold) {
