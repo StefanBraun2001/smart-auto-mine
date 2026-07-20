@@ -9,6 +9,8 @@ public class MinePreset {
 	public String maxDuration = "";
 	public int minDurability = 0;
 	public int minDurabilityPercent = 0;
+	public boolean useMoreTools = false;
+	public String toolKeyword = "pickaxe";
 	public boolean autoEatEnabled = true;
 	public int autoEatHungerThreshold = 20;
 	public SmartAutoMineConfig.FoodSafetyPreset foodSafetyPreset = SmartAutoMineConfig.FoodSafetyPreset.LIGHT;
@@ -20,6 +22,8 @@ public class MinePreset {
 		preset.maxDuration = config.maxDuration;
 		preset.minDurability = config.minDurability;
 		preset.minDurabilityPercent = config.minDurabilityPercent;
+		preset.useMoreTools = config.useMoreTools;
+		preset.toolKeyword = config.toolKeyword;
 		preset.autoEatEnabled = config.autoEatEnabled;
 		preset.autoEatHungerThreshold = config.autoEatHungerThreshold;
 		preset.foodSafetyPreset = config.foodSafetyPreset;
@@ -32,6 +36,8 @@ public class MinePreset {
 		config.maxDuration = maxDuration;
 		config.minDurability = minDurability;
 		config.minDurabilityPercent = minDurabilityPercent;
+		config.useMoreTools = useMoreTools;
+		config.toolKeyword = toolKeyword;
 		config.autoEatEnabled = autoEatEnabled;
 		config.autoEatHungerThreshold = autoEatHungerThreshold;
 		config.foodSafetyPreset = foodSafetyPreset;
