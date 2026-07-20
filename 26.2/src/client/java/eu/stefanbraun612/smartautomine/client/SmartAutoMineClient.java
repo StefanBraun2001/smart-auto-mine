@@ -19,7 +19,7 @@ public class SmartAutoMineClient implements ClientModInitializer {
 	// Fully-qualified name of the (optional, separate) Smart Auto Reconnect mod's
 	// signal class - checked via reflection so this mod builds and runs fine whether
 	// or not that mod is installed, with no compile-time dependency between them.
-	private static final String RECONNECT_SIGNAL_CLASS = "eu.stefanbraun612.smartautoreconnect.ReconnectSignal";
+	private static final String RECONNECT_SIGNAL_CLASS = "eu.stefanbraun612.smartautoreconnect.client.ReconnectSignal";
 	private static final long RECONNECT_SIGNAL_WINDOW_MILLIS = 5000;
 
 	private static KeyMapping toggleKey;
