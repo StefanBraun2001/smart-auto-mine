@@ -26,21 +26,29 @@ public class AutoMineLogic {
 	// Temporary diagnostic logging for the attack-indicator reset - remove once fixed.
 	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
 	private static float lastAttackScaleForLog = 0f;
+	private static String lastMainHandForLog = "";
 
 	// Ticks between place-mine interacts, matching vanilla's own held-right-click cadence
 	// (Minecraft.rightClickDelay is set to 4 after each use). Firing every tick instead
 	// (no delay) placed blocks several times faster than the manual F3+T technique.
 	private static final int INTERACT_DELAY_TICKS = 4;
+	// Ticks to hold off mining right after place-mine starts, so the very first placed block
+	// gets its follow-up interact (e.g. a shovel tilling it into a path) before mining
+	// engages. One vanilla destroyDelay's worth - every later block gets the same gap for
+	// free from the previous break's own destroyDelay, so this is only needed at startup.
+	private static final int STARTUP_MINE_SUPPRESS_TICKS = 5;
 
 	private static long elapsedActiveTicks = 0;
 	// Counts down between place-mine interacts. Decremented every tick (even mid-break, so
 	// it's ready the moment the next post-break gap opens), reset to INTERACT_DELAY_TICKS
 	// only when an interact actually fires - exactly how vanilla drives rightClickDelay.
 	private static int placeInteractDelay = 0;
+	private static int placeMineStartupTicks = 0;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		placeInteractDelay = 0;
+		placeMineStartupTicks = STARTUP_MINE_SUPPRESS_TICKS;
 	}
 
 	public static void tick(Minecraft client) {
@@ -144,9 +152,15 @@ public class AutoMineLogic {
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player) {
 		logAttackTickerResets(client, player); // diagnostic - remove once the reset is found
 
+		// Decrement the interact delay first, then fire on the SAME tick it reaches 0 (this
+		// is what vanilla does: rightClickDelay is decremented in Minecraft.tick, then the
+		// interact fires when it's 0). Doing it as a single if/else-if instead delayed each
+		// interact by one extra tick, which pushed the till just past when mining engaged and
+		// made it miss far more often than the manual technique.
 		if (placeInteractDelay > 0) {
 			placeInteractDelay--;
-		} else if (!client.gameMode.isDestroying() && client.hitResult != null
+		}
+		if (placeInteractDelay == 0 && !client.gameMode.isDestroying() && client.hitResult != null
 				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
 			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
 			InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
@@ -160,19 +174,36 @@ public class AutoMineLogic {
 			}
 			placeInteractDelay = INTERACT_DELAY_TICKS;
 		}
+
+		// Startup only: hold off mining for a few ticks so the very first placed block gets
+		// its follow-up interact (the till) before mining engages. Without this the first
+		// block is always mined raw - there's no prior break to supply a destroyDelay gap yet.
+		if (placeMineStartupTicks > 0) {
+			placeMineStartupTicks--;
+			return;
+		}
+
 		tickRegularMining(client, player, false);
 	}
 
-	// Diagnostic: the attack-cooldown indicator only moves when resetAttackStrengthTicker()
-	// runs. In place-mine the only reachable trigger should be Player.tick() detecting a
-	// main-hand item TYPE change, so log exactly when the strength scale drops, alongside
-	// both hand items, to see what's actually changing each cycle.
+	// Diagnostic: the attack-cooldown indicator only moves when the attack-strength ticker
+	// resets, and in place-mine the only reachable trigger is a main-hand item TYPE change
+	// between ticks (e.g. auto-eat swapping to a food slot and back) or vanilla's own input
+	// handling if a mouse button is being physically held. The per-tick reset log only sees
+	// the main hand AFTER it's swapped back, so also log every tick the main-hand item name
+	// changes, plus whether the attack/use keys are physically down, to catch the transient.
 	private static void logAttackTickerResets(Minecraft client, LocalPlayer player) {
+		String mainHand = BuiltInRegistries.ITEM.getKey(player.getMainHandItem().getItem()).toString();
+		if (!mainHand.equals(lastMainHandForLog)) {
+			PLACE_MINE_LOG.info("MAINHAND CHANGED {} -> {} (attackDown={} useDown={})",
+					lastMainHandForLog, mainHand, client.options.keyAttack.isDown(), client.options.keyUse.isDown());
+			lastMainHandForLog = mainHand;
+		}
 		float scale = player.getAttackStrengthScale(0f);
 		if (scale < lastAttackScaleForLog - 0.1f) {
-			PLACE_MINE_LOG.info("TICKER RESET {}->{} mainhand={} offhand={} destroying={}",
-					lastAttackScaleForLog, scale, player.getMainHandItem(), player.getOffhandItem(),
-					client.gameMode.isDestroying());
+			PLACE_MINE_LOG.info("TICKER RESET {}->{} mainhand={} attackDown={} useDown={} destroying={}",
+					lastAttackScaleForLog, scale, mainHand,
+					client.options.keyAttack.isDown(), client.options.keyUse.isDown(), client.gameMode.isDestroying());
 		}
 		lastAttackScaleForLog = scale;
 	}
