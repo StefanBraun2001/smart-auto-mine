@@ -24,10 +24,12 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   safety stop, max duration.
 - "Use more tools": rotates to another hotbar item matching a keyword when
   the current tool's durability guard trips.
-- Place-mine mode: interacts with the offhand item, then mines exactly the
-  result of that interaction (a placed ore block, a tilled dirt path, etc.)
-  before interacting again - e.g. for a Fortune III ore farm or path
-  farming, replacing the manual "hold both buttons + F3+T" cheese.
+- Place-mine mode: drives what physically holding both mouse buttons does
+  (right-click tries main-hand then offhand, plus held left-click to mine),
+  paced entirely by vanilla's own "can't place while mid-break" timing - a
+  faithful stand-in for the manual "hold both buttons + F3+T" cheese, e.g.
+  a Fortune III ore farm or a coarse-dirt + shovel path farm. No delay
+  settings; the timing is vanilla's.
 - Auto-eat, identical to Smart Auto Attack.
 - **Presets**: named bundles of duration/durability/tool-rotation/auto-eat
   settings, managed via client-side commands

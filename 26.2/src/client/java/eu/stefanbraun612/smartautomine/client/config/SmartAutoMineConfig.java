@@ -42,18 +42,9 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	// Place-mine mode is not a config toggle - it's triggered by its own keybinding
 	// (default L) since only one mode can run at a time; see SmartAutoMineClient.
-
-	@ConfigEntry.Gui.Tooltip
-	public int placeMineIntervalTicks = 4; // ticks between offhand place attempts in place-mine mode
-
-	@ConfigEntry.Gui.Tooltip
-	public boolean randomizePlaceMineDelay = false;
-
-	@ConfigEntry.Gui.Tooltip
-	public int placeMineIntervalMin = 2; // used instead of placeMineIntervalTicks when randomize is on
-
-	@ConfigEntry.Gui.Tooltip
-	public int placeMineIntervalMax = 6; // used instead of placeMineIntervalTicks when randomize is on
+	// It has no timing/delay options: interacting is paced entirely by vanilla's own
+	// "can't place while mid-break" rule, and any extra delay only broke it (see
+	// AutoMineLogic.tickPlaceMine).
 
 	// --- General / feedback ---
 

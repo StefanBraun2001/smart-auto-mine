@@ -17,25 +17,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class AutoMineLogic {
-	// Temporary diagnostic logging for the place-mine gating bug - remove once fixed.
-	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
-
 	private static long elapsedActiveTicks = 0;
-	// Counts down between place-mine offhand interacts - interacting every single tick
-	// (20/s) is faster than the manual "hold both buttons + F3+T glitch" technique it's
-	// meant to replace, so this adds the same slight delay back in.
-	private static int placeCooldownTicks = 0;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
-		placeCooldownTicks = 0;
 	}
 
 	public static void tick(Minecraft client) {
@@ -74,9 +63,9 @@ public class AutoMineLogic {
 		}
 
 		if (SmartAutoMineClient.isPlaceMineActive()) {
-			tickPlaceMine(client, player, config);
+			tickPlaceMine(client, player);
 		} else {
-			tickRegularMining(client, player);
+			tickRegularMining(client, player, true);
 		}
 	}
 
@@ -91,7 +80,7 @@ public class AutoMineLogic {
 	// = 4) gets to place/till the next block. Previous versions bypassed it with a direct
 	// startDestroyBlock on target change, so mining chewed straight through with no gap for
 	// the interact to act - which is why nothing ever got tilled after the first block.
-	private static void tickRegularMining(Minecraft client, LocalPlayer player) {
+	private static void tickRegularMining(Minecraft client, LocalPlayer player, boolean stopWhenOffBlock) {
 		if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
 			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
 			BlockPos pos = hitResult.getBlockPos();
@@ -101,10 +90,16 @@ public class AutoMineLogic {
 			}
 			return;
 		}
-		// No block under the crosshair - matches continueAttack's final stopDestroyBlock().
-		// It's an internal no-op unless actually mid-break, so it doesn't reset the attack
-		// ticker (and flicker the indicator) except when there was genuinely a break to abort.
-		client.gameMode.stopDestroyBlock();
+		// No block under the crosshair. Regular mining mirrors vanilla continueAttack and
+		// aborts any in-progress break via stopDestroyBlock(). Place-mine passes false here
+		// and skips it: stopDestroyBlock() is the one call in this whole path that resets the
+		// attack-strength ticker, and place-mine's constant place/mine target churn briefly
+		// leaves the crosshair off a block every cycle - calling it there made the attack
+		// indicator jiggle every cycle. Breaks complete on their own, so it isn't needed;
+		// continueDestroyBlock re-syncs to a new target by itself when the crosshair returns.
+		if (stopWhenOffBlock) {
+			client.gameMode.stopDestroyBlock();
+		}
 	}
 
 	// Replicates a genuinely-held right-click + left-click (what F3+T actually produces:
@@ -123,49 +118,30 @@ public class AutoMineLogic {
 	//    own hand-priority order does it.
 	//
 	// 2. Interacting is completely blocked while gameMode.isDestroying() is true - you
-	//    cannot place/till while actively mid-way through breaking a block. Combined with
-	//    (1), this is what drives the whole place-then-till-then-mine cycle automatically:
-	//    interacting only succeeds in the moments isDestroying is false (right as the
-	//    previous target finishes breaking), at which point the newly placed/tilled block
-	//    becomes the mining target (it's physically closer along the same ray than whatever
-	//    you clicked against), gets mined to completion, isDestroying goes false again, and
-	//    interacting succeeds again.
-	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
-		boolean validTarget = client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK;
-		if (placeCooldownTicks > 0) {
-			placeCooldownTicks--;
-		} else if (!client.gameMode.isDestroying() && validTarget) {
+	//    cannot place/till while actively mid-way through breaking a block. That gate is the
+	//    ONLY pacing this needs: the interact fires every tick it's allowed, which is exactly
+	//    the brief window between one block finishing breaking and the next starting. There
+	//    is deliberately no extra place-delay on top - a real held right-click has no such
+	//    delay in this loop either, and adding one just fell out of phase with the mining and
+	//    kept missing that window (which is why any non-zero delay stopped it working at all).
+	//    When the interact fires, the newly placed/tilled block becomes the mining target
+	//    (physically closer along the same ray than whatever was clicked against), gets mined
+	//    to completion, isDestroying goes false again, and the interact fires again.
+	private static void tickPlaceMine(Minecraft client, LocalPlayer player) {
+		if (!client.gameMode.isDestroying() && client.hitResult != null
+				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
 			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-			InteractionResult mainHandResult = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
-			InteractionResult result = mainHandResult;
+			InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
 			InteractionHand successHand = InteractionHand.MAIN_HAND;
-			if (!(mainHandResult instanceof InteractionResult.Success)
-					&& !(mainHandResult instanceof InteractionResult.Fail)) {
+			if (!(result instanceof InteractionResult.Success) && !(result instanceof InteractionResult.Fail)) {
 				result = client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
 				successHand = InteractionHand.OFF_HAND;
 			}
-			PLACE_MINE_LOG.info("INTERACT pos={} dir={} state={} mainHandResult={} finalResult={} via={}",
-					hitResult.getBlockPos(), hitResult.getDirection(),
-					client.level.getBlockState(hitResult.getBlockPos()), mainHandResult, result, successHand);
 			if (result instanceof InteractionResult.Success) {
 				player.swing(successHand);
 			}
-			placeCooldownTicks = nextPlaceCooldown(config);
-		} else if (placeCooldownTicks == 0) {
-			PLACE_MINE_LOG.info("BLOCKED isDestroying={} validTarget={} hitType={}",
-					client.gameMode.isDestroying(), validTarget,
-					client.hitResult == null ? "null" : client.hitResult.getType());
 		}
-		tickRegularMining(client, player);
-	}
-
-	private static int nextPlaceCooldown(SmartAutoMineConfig config) {
-		if (!config.randomizePlaceMineDelay) {
-			return Math.max(0, config.placeMineIntervalTicks);
-		}
-		int min = Math.min(config.placeMineIntervalMin, config.placeMineIntervalMax);
-		int max = Math.max(config.placeMineIntervalMin, config.placeMineIntervalMax);
-		return Math.max(0, ThreadLocalRandom.current().nextInt(min, max + 1));
+		tickRegularMining(client, player, false);
 	}
 
 	private static void stop(Minecraft client, SmartAutoMineConfig config, String message) {
