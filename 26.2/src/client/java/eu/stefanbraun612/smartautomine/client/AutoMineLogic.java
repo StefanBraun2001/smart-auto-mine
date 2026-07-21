@@ -17,11 +17,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AutoMineLogic {
+	// Temporary diagnostic logging for the place-mine gating bug - remove once fixed.
+	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
+
 	private static long elapsedActiveTicks = 0;
 	private static BlockPos lastBreakingPos = null;
 	// Counts down between place-mine offhand interacts - interacting every single tick
@@ -79,16 +84,26 @@ public class AutoMineLogic {
 
 	private static void tickRegularMining(Minecraft client, LocalPlayer player) {
 		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
-			lastBreakingPos = null;
+			abandonMining(client);
 			return;
 		}
 		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
 		BlockPos pos = hitResult.getBlockPos();
 		if (client.level.getBlockState(pos).isAir()) {
-			lastBreakingPos = null;
+			abandonMining(client);
 			return;
 		}
 		mineBlockAt(client, player, pos, hitResult.getDirection());
+	}
+
+	// Cancels an in-progress break with the server/gameMode, not just our own bookkeeping -
+	// without this, gameMode.isDestroying() can stay stuck true from an abandoned target
+	// (crosshair briefly off a block), permanently blocking place-mine's interact gate.
+	private static void abandonMining(Minecraft client) {
+		if (lastBreakingPos != null) {
+			client.gameMode.stopDestroyBlock();
+			lastBreakingPos = null;
+		}
 	}
 
 	private static void mineBlockAt(Minecraft client, LocalPlayer player, BlockPos pos, Direction direction) {
@@ -117,13 +132,21 @@ public class AutoMineLogic {
 	// interact (before anything exists to occlude it) is the only one that ever lands on
 	// it - every cycle after that lands on the block actually placed.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
+		boolean validTarget = client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK;
 		if (placeCooldownTicks > 0) {
 			placeCooldownTicks--;
-		} else if (!client.gameMode.isDestroying() && client.hitResult != null
-				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
-			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, (BlockHitResult) client.hitResult);
+		} else if (!client.gameMode.isDestroying() && validTarget) {
+			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+			PLACE_MINE_LOG.info("INTERACT pos={} dir={} state={} offhand={}",
+					hitResult.getBlockPos(), hitResult.getDirection(),
+					client.level.getBlockState(hitResult.getBlockPos()), player.getOffhandItem());
+			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
 			player.swing(InteractionHand.OFF_HAND);
 			placeCooldownTicks = nextPlaceCooldown(config);
+		} else if (placeCooldownTicks == 0) {
+			PLACE_MINE_LOG.info("BLOCKED isDestroying={} validTarget={} hitType={}",
+					client.gameMode.isDestroying(), validTarget,
+					client.hitResult == null ? "null" : client.hitResult.getType());
 		}
 		tickRegularMining(client, player);
 	}
