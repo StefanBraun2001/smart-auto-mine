@@ -42,9 +42,11 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	// Place-mine mode is not a config toggle - it's triggered by its own keybinding
 	// (default L) since only one mode can run at a time; see SmartAutoMineClient.
-	// It has no timing/delay options: interacting is paced entirely by vanilla's own
-	// "can't place while mid-break" rule, and any extra delay only broke it (see
-	// AutoMineLogic.tickPlaceMine).
+	// It has no timing/delay options: mining and interacting are driven by holding the
+	// mouse buttons, so vanilla's own input handling supplies all the pacing.
+
+	@ConfigEntry.Gui.Tooltip
+	public boolean finishLastBlockOnEmptyOffhand = false;
 
 	// --- General / feedback ---
 

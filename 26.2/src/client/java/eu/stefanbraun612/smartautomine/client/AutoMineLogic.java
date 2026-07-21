@@ -16,10 +16,19 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Locale;
 
 public class AutoMineLogic {
+	// 0.75s of extra runtime after the offhand empties, so the block that was just placed
+	// still gets mined instead of being left sitting there. Only ever applies to the
+	// offhand-empty stop - see tick().
+	private static final int OFFHAND_EMPTY_GRACE_TICKS = 15;
+
 	private static long elapsedActiveTicks = 0;
+	// -1 = not counting. Set when the offhand first reads empty, cleared again if it gets
+	// refilled (e.g. by a dropper) before the grace period runs out.
+	private static int offhandEmptyGraceTicks = -1;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
+		offhandEmptyGraceTicks = -1;
 	}
 
 	public static void tick(Minecraft client) {
@@ -53,8 +62,25 @@ public class AutoMineLogic {
 		}
 
 		if (SmartAutoMineClient.isPlaceMineActive() && player.getOffhandItem().isEmpty()) {
-			stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
-			return;
+			// Deliberately the only stop condition with a grace period: it's not a safety
+			// condition, just "ran out of material", so finishing the block already placed
+			// is harmless. Durability/hunger/health/time all still stop immediately.
+			if (!config.finishLastBlockOnEmptyOffhand) {
+				stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
+				return;
+			}
+			if (offhandEmptyGraceTicks < 0) {
+				offhandEmptyGraceTicks = OFFHAND_EMPTY_GRACE_TICKS;
+			}
+			if (offhandEmptyGraceTicks == 0) {
+				stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
+				return;
+			}
+			offhandEmptyGraceTicks--;
+		} else {
+			// Refilled (a dropper topping the offhand back up) - drop the countdown so a
+			// later empty starts a fresh grace period rather than resuming a half-spent one.
+			offhandEmptyGraceTicks = -1;
 		}
 
 		holdInputs(client, SmartAutoMineClient.isPlaceMineActive());
