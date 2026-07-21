@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.Identifier;
@@ -29,7 +28,6 @@ public class AutoMineLogic {
 	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
 
 	private static long elapsedActiveTicks = 0;
-	private static BlockPos lastBreakingPos = null;
 	// Counts down between place-mine offhand interacts - interacting every single tick
 	// (20/s) is faster than the manual "hold both buttons + F3+T glitch" technique it's
 	// meant to replace, so this adds the same slight delay back in.
@@ -37,7 +35,6 @@ public class AutoMineLogic {
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
-		lastBreakingPos = null;
 		placeCooldownTicks = 0;
 	}
 
@@ -83,46 +80,31 @@ public class AutoMineLogic {
 		}
 	}
 
+	// Mirrors vanilla Minecraft.continueAttack(down=true) as closely as a mod can: on a
+	// solid block, call gameMode.continueDestroyBlock and swing; otherwise stopDestroyBlock.
+	//
+	// The important detail (confirmed by decompiling MultiPlayerGameMode.continueDestroyBlock)
+	// is that we must ALWAYS go through continueDestroyBlock and never call startDestroyBlock
+	// ourselves when the target changes. continueDestroyBlock sets destroyDelay = 5 after
+	// finishing a break and waits those 5 ticks out at the top before touching anything -
+	// that post-break pause is exactly the window in which a held right-click (rightClickDelay
+	// = 4) gets to place/till the next block. Previous versions bypassed it with a direct
+	// startDestroyBlock on target change, so mining chewed straight through with no gap for
+	// the interact to act - which is why nothing ever got tilled after the first block.
 	private static void tickRegularMining(Minecraft client, LocalPlayer player) {
-		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
-			// No valid target at all - matches vanilla's continueAttack falling through to
-			// gameMode.stopDestroyBlock() when the crosshair isn't on a block.
-			abandonMining(client);
+		if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
+			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+			BlockPos pos = hitResult.getBlockPos();
+			if (!client.level.getBlockState(pos).isAir()
+					&& client.gameMode.continueDestroyBlock(pos, hitResult.getDirection())) {
+				player.swing(InteractionHand.MAIN_HAND);
+			}
 			return;
 		}
-		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-		BlockPos pos = hitResult.getBlockPos();
-		if (client.level.getBlockState(pos).isAir()) {
-			// The targeted position is momentarily air (e.g. right after place-mine's last
-			// block finished breaking, before the next one is placed) - vanilla's own
-			// continueAttack silently does nothing in this exact case, it does NOT call
-			// stopDestroyBlock(). Calling it here was wrong: stopDestroyBlock() resets the
-			// attack-cooldown ticker, so doing it once every place-mine cycle looked like
-			// the attack indicator constantly resetting/recharging.
-			lastBreakingPos = null;
-			return;
-		}
-		mineBlockAt(client, player, pos, hitResult.getDirection());
-	}
-
-	// Cancels an in-progress break with the server/gameMode, not just our own bookkeeping -
-	// without this, gameMode.isDestroying() can stay stuck true from an abandoned target
-	// (crosshair briefly off a block), permanently blocking place-mine's interact gate.
-	private static void abandonMining(Minecraft client) {
-		if (lastBreakingPos != null) {
-			client.gameMode.stopDestroyBlock();
-			lastBreakingPos = null;
-		}
-	}
-
-	private static void mineBlockAt(Minecraft client, LocalPlayer player, BlockPos pos, Direction direction) {
-		if (!pos.equals(lastBreakingPos)) {
-			client.gameMode.startDestroyBlock(pos, direction);
-			lastBreakingPos = pos;
-		} else {
-			client.gameMode.continueDestroyBlock(pos, direction);
-		}
-		player.swing(InteractionHand.MAIN_HAND);
+		// No block under the crosshair - matches continueAttack's final stopDestroyBlock().
+		// It's an internal no-op unless actually mid-break, so it doesn't reset the attack
+		// ticker (and flicker the indicator) except when there was genuinely a break to abort.
+		client.gameMode.stopDestroyBlock();
 	}
 
 	// Replicates a genuinely-held right-click + left-click (what F3+T actually produces:
