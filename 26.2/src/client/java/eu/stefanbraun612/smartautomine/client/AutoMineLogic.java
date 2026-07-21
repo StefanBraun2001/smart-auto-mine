@@ -22,17 +22,31 @@ import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AutoMineLogic {
+	// Safety cap on the mining phase of place-mine, in case the placed block never
+	// actually breaks - without this it would get stuck mining the same spot forever
+	// instead of ever placing again.
+	private static final int PLACE_MINE_STUCK_TIMEOUT_TICKS = 100;
+
 	private static long elapsedActiveTicks = 0;
 	private static BlockPos lastBreakingPos = null;
 	// Counts down between place-mine offhand interacts - interacting every single tick
 	// (20/s) is faster than the manual "hold both buttons + F3+T glitch" technique it's
 	// meant to replace, so this adds the same slight delay back in.
 	private static int placeCooldownTicks = 0;
+	// Null means "awaiting the next placement". Once a block is placed, place-mine locks
+	// onto this position for the whole mining phase - it deliberately ignores where the
+	// live crosshair drifts to afterwards (see tickPlaceMine for why).
+	private static BlockPos placeMineTargetPos = null;
+	private static Direction placeMineDirection = null;
+	private static int placeMineStuckTicks = 0;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		lastBreakingPos = null;
 		placeCooldownTicks = 0;
+		placeMineTargetPos = null;
+		placeMineDirection = null;
+		placeMineStuckTicks = 0;
 	}
 
 	public static void tick(Minecraft client) {
@@ -101,35 +115,55 @@ public class AutoMineLogic {
 		player.swing(InteractionHand.MAIN_HAND);
 	}
 
-	// Replicates the manual "hold RMB, then LMB, then F3+T" cheese as literally as
-	// possible: both buttons are simply held down at once, every tick, on whatever's
-	// currently under the crosshair - no bookkeeping about what got placed, what
-	// changed, or which position to "lock onto". The order within the tick matters,
-	// same as the manual technique (RMB pressed before LMB): useItemOn's transform
-	// (e.g. shovel turning dirt into a path) is applied client-side immediately via
-	// prediction, so interacting BEFORE mining each tick means the mining call below
-	// sees the already-transformed block instead of its pre-interaction state.
+	// Replicates the manual "hold RMB, then LMB, then F3+T" cheese: place the offhand
+	// item, then mine exactly the block that placement created, then place again.
+	//
+	// Placing a block from your offhand doesn't happen AT the position you clicked -
+	// vanilla places it adjacent to the clicked face (BlockPos.relative(direction)),
+	// unless the clicked block itself is replaceable (tall grass, snow layer, etc.), in
+	// which case it lands at the clicked position directly. Mining the clicked position
+	// itself (what earlier versions of this did) mines whatever you're using as a
+	// reference surface to place against - not the block you actually placed - which
+	// is why it looked like it was "mining the block behind" the intended target and
+	// slowly digging through unrelated terrain.
+	//
+	// The mining target is computed once, right when placing, and locked for the whole
+	// mining phase: once the placed block is gone, the crosshair naturally re-targets
+	// the reference surface again, and re-deriving the position from the live crosshair
+	// at that point would walk one block further with each cycle instead of placing
+	// against the same fixed reference every time.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
-		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
-			lastBreakingPos = null;
-			return;
-		}
-		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+		if (placeMineTargetPos == null) {
+			if (placeCooldownTicks > 0) {
+				placeCooldownTicks--;
+				return;
+			}
+			if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
+				return; // nothing to place against yet, keep waiting
+			}
+			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+			BlockPos clickedPos = hitResult.getBlockPos();
+			Direction direction = hitResult.getDirection();
+			boolean placesAtClickedPos = client.level.getBlockState(clickedPos).canBeReplaced();
 
-		if (placeCooldownTicks > 0) {
-			placeCooldownTicks--;
-		} else {
 			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
 			player.swing(InteractionHand.OFF_HAND);
-			placeCooldownTicks = nextPlaceCooldown(config);
+
+			placeMineTargetPos = placesAtClickedPos ? clickedPos : clickedPos.relative(direction);
+			placeMineDirection = direction;
+			placeMineStuckTicks = 0;
+			lastBreakingPos = null; // force a fresh startDestroyBlock
+			return; // mine on the next tick, once the placement has taken effect
 		}
 
-		BlockPos pos = hitResult.getBlockPos();
-		if (client.level.getBlockState(pos).isAir()) {
-			lastBreakingPos = null;
+		if (client.level.getBlockState(placeMineTargetPos).isAir()
+				|| ++placeMineStuckTicks > PLACE_MINE_STUCK_TIMEOUT_TICKS) {
+			placeMineTargetPos = null;
+			placeCooldownTicks = nextPlaceCooldown(config);
 			return;
 		}
-		mineBlockAt(client, player, pos, hitResult.getDirection());
+
+		mineBlockAt(client, player, placeMineTargetPos, placeMineDirection);
 	}
 
 	private static int nextPlaceCooldown(SmartAutoMineConfig config) {
