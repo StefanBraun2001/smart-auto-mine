@@ -17,14 +17,30 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 
 public class AutoMineLogic {
+	// Temporary diagnostic logging for the attack-indicator reset - remove once fixed.
+	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
+	private static float lastAttackScaleForLog = 0f;
+
+	// Ticks between place-mine interacts, matching vanilla's own held-right-click cadence
+	// (Minecraft.rightClickDelay is set to 4 after each use). Firing every tick instead
+	// (no delay) placed blocks several times faster than the manual F3+T technique.
+	private static final int INTERACT_DELAY_TICKS = 4;
+
 	private static long elapsedActiveTicks = 0;
+	// Counts down between place-mine interacts. Decremented every tick (even mid-break, so
+	// it's ready the moment the next post-break gap opens), reset to INTERACT_DELAY_TICKS
+	// only when an interact actually fires - exactly how vanilla drives rightClickDelay.
+	private static int placeInteractDelay = 0;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
+		placeInteractDelay = 0;
 	}
 
 	public static void tick(Minecraft client) {
@@ -117,18 +133,20 @@ public class AutoMineLogic {
 	//    placeable block (e.g. dirt) places instead. No manual switching needed - vanilla's
 	//    own hand-priority order does it.
 	//
-	// 2. Interacting is completely blocked while gameMode.isDestroying() is true - you
-	//    cannot place/till while actively mid-way through breaking a block. That gate is the
-	//    ONLY pacing this needs: the interact fires every tick it's allowed, which is exactly
-	//    the brief window between one block finishing breaking and the next starting. There
-	//    is deliberately no extra place-delay on top - a real held right-click has no such
-	//    delay in this loop either, and adding one just fell out of phase with the mining and
-	//    kept missing that window (which is why any non-zero delay stopped it working at all).
+	// 2. Interacting is completely blocked while gameMode.isDestroying() is true - you cannot
+	//    place/till while mid-way through breaking a block. That gate plus a fixed inter-use
+	//    delay (INTERACT_DELAY_TICKS, matching vanilla's rightClickDelay = 4) is what paces
+	//    this: the interact fires once per post-break gap, not every tick, so the placement
+	//    rate matches the manual F3+T technique instead of running several times faster.
 	//    When the interact fires, the newly placed/tilled block becomes the mining target
 	//    (physically closer along the same ray than whatever was clicked against), gets mined
 	//    to completion, isDestroying goes false again, and the interact fires again.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player) {
-		if (!client.gameMode.isDestroying() && client.hitResult != null
+		logAttackTickerResets(client, player); // diagnostic - remove once the reset is found
+
+		if (placeInteractDelay > 0) {
+			placeInteractDelay--;
+		} else if (!client.gameMode.isDestroying() && client.hitResult != null
 				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
 			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
 			InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
@@ -140,8 +158,23 @@ public class AutoMineLogic {
 			if (result instanceof InteractionResult.Success) {
 				player.swing(successHand);
 			}
+			placeInteractDelay = INTERACT_DELAY_TICKS;
 		}
 		tickRegularMining(client, player, false);
+	}
+
+	// Diagnostic: the attack-cooldown indicator only moves when resetAttackStrengthTicker()
+	// runs. In place-mine the only reachable trigger should be Player.tick() detecting a
+	// main-hand item TYPE change, so log exactly when the strength scale drops, alongside
+	// both hand items, to see what's actually changing each cycle.
+	private static void logAttackTickerResets(Minecraft client, LocalPlayer player) {
+		float scale = player.getAttackStrengthScale(0f);
+		if (scale < lastAttackScaleForLog - 0.1f) {
+			PLACE_MINE_LOG.info("TICKER RESET {}->{} mainhand={} offhand={} destroying={}",
+					lastAttackScaleForLog, scale, player.getMainHandItem(), player.getOffhandItem(),
+					client.gameMode.isDestroying());
+		}
+		lastAttackScaleForLog = scale;
 	}
 
 	private static void stop(Minecraft client, SmartAutoMineConfig config, String message) {
