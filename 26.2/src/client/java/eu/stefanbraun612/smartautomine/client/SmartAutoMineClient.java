@@ -86,9 +86,13 @@ public class SmartAutoMineClient implements ClientModInitializer {
 			if (enabled) {
 				AutoEatLogic.tick(client);
 				// Don't mine while mid-chew: mining actions would otherwise interrupt
-				// the vanilla eat-use action the same way attacking does.
+				// the vanilla eat-use action the same way attacking does. The held mouse
+				// buttons have to be let go for the same reason - auto-eat drives the use
+				// key itself, and a held attack key would cancel the bite.
 				if (!AutoEatLogic.isEating()) {
 					AutoMineLogic.tick(client);
+				} else {
+					AutoMineLogic.releaseMiningInput(client);
 				}
 			}
 		});
@@ -129,6 +133,11 @@ public class SmartAutoMineClient implements ClientModInitializer {
 	public static void setEnabled(boolean value, Minecraft client) {
 		enabled = value;
 		AutoMineLogic.reset();
+		if (!value) {
+			// Let go of the mouse buttons we were holding, otherwise they'd stay stuck
+			// down (exactly the F3+T glitch) and keep mining/placing after switching off.
+			AutoMineLogic.releaseInputs(client);
+		}
 		SmartAutoMineConfig config = AutoConfig.getConfigHolder(SmartAutoMineConfig.class).getConfig();
 		String modeLabel = placeMineActive ? " (place-mine)" : "";
 		FeedbackUtil.send(client, config, value ? "Smart Auto Mine: ON" + modeLabel : "Smart Auto Mine: OFF");

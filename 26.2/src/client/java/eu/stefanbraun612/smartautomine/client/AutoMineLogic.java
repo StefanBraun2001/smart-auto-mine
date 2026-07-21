@@ -5,50 +5,21 @@ import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 
 public class AutoMineLogic {
-	// Temporary diagnostic logging for the attack-indicator reset - remove once fixed.
-	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
-	private static float lastAttackScaleForLog = 0f;
-	private static String lastMainHandForLog = "";
-
-	// Ticks between place-mine interacts, matching vanilla's own held-right-click cadence
-	// (Minecraft.rightClickDelay is set to 4 after each use). Firing every tick instead
-	// (no delay) placed blocks several times faster than the manual F3+T technique.
-	private static final int INTERACT_DELAY_TICKS = 4;
-	// Ticks to hold off mining right after place-mine starts, so the very first placed block
-	// gets its follow-up interact (e.g. a shovel tilling it into a path) before mining
-	// engages. One vanilla destroyDelay's worth - every later block gets the same gap for
-	// free from the previous break's own destroyDelay, so this is only needed at startup.
-	private static final int STARTUP_MINE_SUPPRESS_TICKS = 5;
-
 	private static long elapsedActiveTicks = 0;
-	// Counts down between place-mine interacts. Decremented every tick (even mid-break, so
-	// it's ready the moment the next post-break gap opens), reset to INTERACT_DELAY_TICKS
-	// only when an interact actually fires - exactly how vanilla drives rightClickDelay.
-	private static int placeInteractDelay = 0;
-	private static int placeMineStartupTicks = 0;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
-		placeInteractDelay = 0;
-		placeMineStartupTicks = STARTUP_MINE_SUPPRESS_TICKS;
 	}
 
 	public static void tick(Minecraft client) {
@@ -86,126 +57,42 @@ public class AutoMineLogic {
 			return;
 		}
 
-		if (SmartAutoMineClient.isPlaceMineActive()) {
-			tickPlaceMine(client, player);
-		} else {
-			tickRegularMining(client, player, true);
-		}
+		holdInputs(client, SmartAutoMineClient.isPlaceMineActive());
 	}
 
-	// Mirrors vanilla Minecraft.continueAttack(down=true) as closely as a mod can: on a
-	// solid block, call gameMode.continueDestroyBlock and swing; otherwise stopDestroyBlock.
+	// This is the whole mining/placing implementation: hold the mouse buttons down and let
+	// vanilla's own per-tick input handling do everything, which is literally what the F3+T
+	// technique produces (the client believing the buttons never got released).
 	//
-	// The important detail (confirmed by decompiling MultiPlayerGameMode.continueDestroyBlock)
-	// is that we must ALWAYS go through continueDestroyBlock and never call startDestroyBlock
-	// ourselves when the target changes. continueDestroyBlock sets destroyDelay = 5 after
-	// finishing a break and waits those 5 ticks out at the top before touching anything -
-	// that post-break pause is exactly the window in which a held right-click (rightClickDelay
-	// = 4) gets to place/till the next block. Previous versions bypassed it with a direct
-	// startDestroyBlock on target change, so mining chewed straight through with no gap for
-	// the interact to act - which is why nothing ever got tilled after the first block.
-	private static void tickRegularMining(Minecraft client, LocalPlayer player, boolean stopWhenOffBlock) {
-		if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
-			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-			BlockPos pos = hitResult.getBlockPos();
-			if (!client.level.getBlockState(pos).isAir()
-					&& client.gameMode.continueDestroyBlock(pos, hitResult.getDirection())) {
-				player.swing(InteractionHand.MAIN_HAND);
-			}
-			return;
-		}
-		// No block under the crosshair. Regular mining mirrors vanilla continueAttack and
-		// aborts any in-progress break via stopDestroyBlock(). Place-mine passes false here
-		// and skips it: stopDestroyBlock() is the one call in this whole path that resets the
-		// attack-strength ticker, and place-mine's constant place/mine target churn briefly
-		// leaves the crosshair off a block every cycle - calling it there made the attack
-		// indicator jiggle every cycle. Breaks complete on their own, so it isn't needed;
-		// continueDestroyBlock re-syncs to a new target by itself when the crosshair returns.
-		if (stopWhenOffBlock) {
-			client.gameMode.stopDestroyBlock();
-		}
+	// Driving gameMode.continueDestroyBlock/useItemOn directly instead - what every previous
+	// version did - actively fights vanilla. Minecraft.handleKeybinds() runs continueAttack()
+	// every single tick, and with the attack key not physically held it takes the "else"
+	// branch straight to gameMode.stopDestroyBlock(). So each tick vanilla ABORTED the break
+	// the mod had just started and called resetAttackStrengthTicker() - that's both the
+	// constantly-resetting attack indicator and why mining/tilling was erratic and kept
+	// missing: no break ever got to run uninterrupted. Holding the keys removes the conflict
+	// entirely and gives exactly vanilla's timing (rightClickDelay, destroyDelay, hand
+	// priority) for free, so place-mine matches the manual technique instead of approximating it.
+	private static void holdInputs(Minecraft client, boolean placeMine) {
+		client.options.keyAttack.setDown(true);
+		// Set explicitly rather than only on true: plain mining must not interact with
+		// anything, and switching straight from place-mine to plain mining would otherwise
+		// leave right-click stuck down from the previous mode.
+		client.options.keyUse.setDown(placeMine);
 	}
 
-	// Replicates a genuinely-held right-click + left-click (what F3+T actually produces:
-	// not repeated clicks, but the game believing both buttons are still physically down,
-	// forever, processed by vanilla's own per-tick input handling).
-	//
-	// Two vanilla rules, confirmed by decompiling Minecraft.startUseItem(), drive this:
-	//
-	// 1. A single right-click tries the MAIN hand's item first, and only falls through to
-	//    the OFFHAND item if the main hand's interaction doesn't apply (returns Pass, not
-	//    Success or Fail). This is what makes a single held click do two different things
-	//    depending on what's there: a shovel in the main hand tills an existing dirt/grass
-	//    block on contact (succeeds, offhand never even tried that click); once there's
-	//    nothing left to till, the shovel's interaction passes through and the offhand's
-	//    placeable block (e.g. dirt) places instead. No manual switching needed - vanilla's
-	//    own hand-priority order does it.
-	//
-	// 2. Interacting is completely blocked while gameMode.isDestroying() is true - you cannot
-	//    place/till while mid-way through breaking a block. That gate plus a fixed inter-use
-	//    delay (INTERACT_DELAY_TICKS, matching vanilla's rightClickDelay = 4) is what paces
-	//    this: the interact fires once per post-break gap, not every tick, so the placement
-	//    rate matches the manual F3+T technique instead of running several times faster.
-	//    When the interact fires, the newly placed/tilled block becomes the mining target
-	//    (physically closer along the same ray than whatever was clicked against), gets mined
-	//    to completion, isDestroying goes false again, and the interact fires again.
-	private static void tickPlaceMine(Minecraft client, LocalPlayer player) {
-		logAttackTickerResets(client, player); // diagnostic - remove once the reset is found
-
-		// Decrement the interact delay first, then fire on the SAME tick it reaches 0 (this
-		// is what vanilla does: rightClickDelay is decremented in Minecraft.tick, then the
-		// interact fires when it's 0). Doing it as a single if/else-if instead delayed each
-		// interact by one extra tick, which pushed the till just past when mining engaged and
-		// made it miss far more often than the manual technique.
-		if (placeInteractDelay > 0) {
-			placeInteractDelay--;
-		}
-		if (placeInteractDelay == 0 && !client.gameMode.isDestroying() && client.hitResult != null
-				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
-			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-			InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
-			InteractionHand successHand = InteractionHand.MAIN_HAND;
-			if (!(result instanceof InteractionResult.Success) && !(result instanceof InteractionResult.Fail)) {
-				result = client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
-				successHand = InteractionHand.OFF_HAND;
-			}
-			if (result instanceof InteractionResult.Success) {
-				player.swing(successHand);
-			}
-			placeInteractDelay = INTERACT_DELAY_TICKS;
-		}
-
-		// Startup only: hold off mining for a few ticks so the very first placed block gets
-		// its follow-up interact (the till) before mining engages. Without this the first
-		// block is always mined raw - there's no prior break to supply a destroyDelay gap yet.
-		if (placeMineStartupTicks > 0) {
-			placeMineStartupTicks--;
-			return;
-		}
-
-		tickRegularMining(client, player, false);
+	// Must be called whenever the mod stops driving input (toggled off, auto-stopped),
+	// otherwise the buttons stay stuck down exactly like the F3+T glitch and keep going.
+	public static void releaseInputs(Minecraft client) {
+		client.options.keyAttack.setDown(false);
+		client.options.keyUse.setDown(false);
 	}
 
-	// Diagnostic: the attack-cooldown indicator only moves when the attack-strength ticker
-	// resets, and in place-mine the only reachable trigger is a main-hand item TYPE change
-	// between ticks (e.g. auto-eat swapping to a food slot and back) or vanilla's own input
-	// handling if a mouse button is being physically held. The per-tick reset log only sees
-	// the main hand AFTER it's swapped back, so also log every tick the main-hand item name
-	// changes, plus whether the attack/use keys are physically down, to catch the transient.
-	private static void logAttackTickerResets(Minecraft client, LocalPlayer player) {
-		String mainHand = BuiltInRegistries.ITEM.getKey(player.getMainHandItem().getItem()).toString();
-		if (!mainHand.equals(lastMainHandForLog)) {
-			PLACE_MINE_LOG.info("MAINHAND CHANGED {} -> {} (attackDown={} useDown={})",
-					lastMainHandForLog, mainHand, client.options.keyAttack.isDown(), client.options.keyUse.isDown());
-			lastMainHandForLog = mainHand;
-		}
-		float scale = player.getAttackStrengthScale(0f);
-		if (scale < lastAttackScaleForLog - 0.1f) {
-			PLACE_MINE_LOG.info("TICKER RESET {}->{} mainhand={} attackDown={} useDown={} destroying={}",
-					lastAttackScaleForLog, scale, mainHand,
-					client.options.keyAttack.isDown(), client.options.keyUse.isDown(), client.gameMode.isDestroying());
-		}
-		lastAttackScaleForLog = scale;
+	// Used while auto-eat is mid-chew: mining has to stop (a held attack key cancels the
+	// bite), but the use key is deliberately left alone because auto-eat drives it itself
+	// to hold the food down - clearing it here would cancel the very bite we're waiting on.
+	public static void releaseMiningInput(Minecraft client) {
+		client.options.keyAttack.setDown(false);
 	}
 
 	private static void stop(Minecraft client, SmartAutoMineConfig config, String message) {
