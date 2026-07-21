@@ -22,8 +22,10 @@ public class AutoMineLogic {
 	private static final int OFFHAND_EMPTY_GRACE_TICKS = 15;
 
 	private static long elapsedActiveTicks = 0;
-	// -1 = not counting. Set when the offhand first reads empty, cleared again if it gets
-	// refilled (e.g. by a dropper) before the grace period runs out.
+	// -1 = not counting; set to the grace length once the offhand first reads empty and
+	// counts down to the stop. No need to un-set it on refill: an empty offhand slot can't
+	// be topped up automatically (a dropper can't place into it), so once it's empty it
+	// stays empty until the run ends and reset() clears this back to -1.
 	private static int offhandEmptyGraceTicks = -1;
 
 	public static void reset() {
@@ -65,22 +67,14 @@ public class AutoMineLogic {
 			// Deliberately the only stop condition with a grace period: it's not a safety
 			// condition, just "ran out of material", so finishing the block already placed
 			// is harmless. Durability/hunger/health/time all still stop immediately.
-			if (!config.finishLastBlockOnEmptyOffhand) {
+			if (!config.finishLastBlockOnEmptyOffhand || offhandEmptyGraceTicks == 0) {
 				stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
 				return;
 			}
 			if (offhandEmptyGraceTicks < 0) {
 				offhandEmptyGraceTicks = OFFHAND_EMPTY_GRACE_TICKS;
 			}
-			if (offhandEmptyGraceTicks == 0) {
-				stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
-				return;
-			}
 			offhandEmptyGraceTicks--;
-		} else {
-			// Refilled (a dropper topping the offhand back up) - drop the countdown so a
-			// later empty starts a fresh grace period rather than resuming a half-spent one.
-			offhandEmptyGraceTicks = -1;
 		}
 
 		holdInputs(client, SmartAutoMineClient.isPlaceMineActive());
