@@ -104,25 +104,32 @@ public class AutoMineLogic {
 	// Replicates the manual "hold RMB, then LMB, then F3+T" cheese as literally as
 	// possible: both buttons are simply held down at once, every tick, on whatever's
 	// currently under the crosshair - no bookkeeping about what got placed, what
-	// changed, or which position to "lock onto". Mining runs exactly like regular
-	// mining (continuous, following the live crosshair target); the offhand interact
-	// fires independently on its own cadence on top of that, same as a real held
-	// right-click would keep re-firing regardless of whether the previous one had
-	// any visible effect (e.g. re-tilling ground that's already a path).
+	// changed, or which position to "lock onto". The order within the tick matters,
+	// same as the manual technique (RMB pressed before LMB): useItemOn's transform
+	// (e.g. shovel turning dirt into a path) is applied client-side immediately via
+	// prediction, so interacting BEFORE mining each tick means the mining call below
+	// sees the already-transformed block instead of its pre-interaction state.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
-		tickRegularMining(client, player);
-
 		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
-			return;
-		}
-		if (placeCooldownTicks > 0) {
-			placeCooldownTicks--;
+			lastBreakingPos = null;
 			return;
 		}
 		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-		client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
-		player.swing(InteractionHand.OFF_HAND);
-		placeCooldownTicks = nextPlaceCooldown(config);
+
+		if (placeCooldownTicks > 0) {
+			placeCooldownTicks--;
+		} else {
+			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
+			player.swing(InteractionHand.OFF_HAND);
+			placeCooldownTicks = nextPlaceCooldown(config);
+		}
+
+		BlockPos pos = hitResult.getBlockPos();
+		if (client.level.getBlockState(pos).isAir()) {
+			lastBreakingPos = null;
+			return;
+		}
+		mineBlockAt(client, player, pos, hitResult.getDirection());
 	}
 
 	private static int nextPlaceCooldown(SmartAutoMineConfig config) {
