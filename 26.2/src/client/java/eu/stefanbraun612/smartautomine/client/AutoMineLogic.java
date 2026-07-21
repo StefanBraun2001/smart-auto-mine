@@ -17,16 +17,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AutoMineLogic {
-	// Temporary diagnostic logging for the place-mine targeting bug - remove once fixed.
-	private static final Logger PLACE_MINE_LOG = LoggerFactory.getLogger("smartautomine-placemine");
-
 	// Safety cap on the mining phase of place-mine, in case the placed block never
 	// actually breaks - without this it would get stuck mining the same spot forever
 	// instead of ever placing again.
@@ -152,11 +147,6 @@ public class AutoMineLogic {
 			boolean placesAtClickedPos = client.level.getBlockState(clickedPos).canBeReplaced();
 			BlockPos newTargetPos = placesAtClickedPos ? clickedPos : clickedPos.relative(direction);
 
-			PLACE_MINE_LOG.info(
-					"INTERACT clickedPos={} clickedState={} direction={} placesAtClickedPos={} targetPos={} targetStateBefore={} offhand={}",
-					clickedPos, client.level.getBlockState(clickedPos), direction, placesAtClickedPos,
-					newTargetPos, client.level.getBlockState(newTargetPos), player.getOffhandItem());
-
 			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
 			player.swing(InteractionHand.OFF_HAND);
 
@@ -169,10 +159,10 @@ public class AutoMineLogic {
 
 		if (client.level.getBlockState(placeMineTargetPos).isAir()
 				|| ++placeMineStuckTicks > PLACE_MINE_STUCK_TIMEOUT_TICKS) {
-			PLACE_MINE_LOG.info(
-					"CYCLE END targetPos={} finalState={} stuckTicks={} (timeout={})",
-					placeMineTargetPos, client.level.getBlockState(placeMineTargetPos), placeMineStuckTicks,
-					placeMineStuckTicks > PLACE_MINE_STUCK_TIMEOUT_TICKS);
+			// If the target is air right away (stuckTicks still 0), the placement itself
+			// silently failed - most commonly because the spot to place into overlapped
+			// the player's own hitbox (vanilla refuses to place a block there). Nothing to
+			// mine either way; go back to placing after the usual cooldown.
 			placeMineTargetPos = null;
 			placeCooldownTicks = nextPlaceCooldown(config);
 			return;
