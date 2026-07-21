@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.Identifier;
@@ -14,6 +15,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
@@ -36,6 +38,16 @@ public class AutoMineLogic {
 	// Place-mine alternates between interacting (offhand right-click) and mining - true
 	// means "interact next", false means "mine the result of the last interaction".
 	private static boolean placeMineAwaitingInteract = true;
+	// True for the one/two ticks right after interacting, while we wait to see which of
+	// the two candidate positions below actually changed before committing to a mining
+	// target - see tickPlaceMine for why this can't just use the live crosshair target.
+	private static boolean placeMineResolving = false;
+	private static BlockPos placeMineCandidatePos = null;
+	private static BlockPos placeMineCandidateAdjPos = null;
+	private static BlockState placeMineBeforeState = null;
+	private static BlockState placeMineBeforeAdjState = null;
+	private static BlockPos placeMineTargetPos = null;
+	private static Direction placeMineDirection = null;
 	private static int placeMineStuckTicks = 0;
 
 	public static void reset() {
@@ -43,6 +55,13 @@ public class AutoMineLogic {
 		lastBreakingPos = null;
 		placeCooldownTicks = 0;
 		placeMineAwaitingInteract = true;
+		placeMineResolving = false;
+		placeMineCandidatePos = null;
+		placeMineCandidateAdjPos = null;
+		placeMineBeforeState = null;
+		placeMineBeforeAdjState = null;
+		placeMineTargetPos = null;
+		placeMineDirection = null;
 		placeMineStuckTicks = 0;
 	}
 
@@ -99,58 +118,91 @@ public class AutoMineLogic {
 			lastBreakingPos = null;
 			return;
 		}
-		mineBlock(client, player, hitResult, pos);
+		mineBlockAt(client, player, pos, hitResult.getDirection());
 	}
 
-	private static void mineBlock(Minecraft client, LocalPlayer player, BlockHitResult hitResult, BlockPos pos) {
+	private static void mineBlockAt(Minecraft client, LocalPlayer player, BlockPos pos, Direction direction) {
 		if (!pos.equals(lastBreakingPos)) {
-			client.gameMode.startDestroyBlock(pos, hitResult.getDirection());
+			client.gameMode.startDestroyBlock(pos, direction);
 			lastBreakingPos = pos;
 		} else {
-			client.gameMode.continueDestroyBlock(pos, hitResult.getDirection());
+			client.gameMode.continueDestroyBlock(pos, direction);
 		}
 		player.swing(InteractionHand.MAIN_HAND);
 	}
 
 	// Replicates the manual "hold RMB, then LMB, then F3+T" cheese used to place/interact
 	// with something (a raw ore block for a Fortune pickaxe farm, tilling dirt into a path
-	// before mining it, etc.) and then mine exactly the result of that action - not a
-	// supplement to normal forward tunneling, but its own self-contained interact-then-mine
-	// cycle. The two steps have to happen in that order and on separate ticks: interacting
-	// first lets whatever placement/transformation it causes actually take effect before
-	// mining ever touches that position, whereas mining unconditionally every tick (the
-	// previous implementation) always mined the block's *pre-interaction* state.
+	// before mining it, etc.) and then mine exactly the result of that action.
+	//
+	// Once interacted, we deliberately stop reading the live crosshair target
+	// (client.hitResult) to decide what to mine: as soon as the placed/transformed block
+	// breaks, the crosshair naturally re-targets whatever is now revealed behind it (e.g.
+	// the neighbouring block you aimed at to place an ore block against) - mining THAT
+	// instead is the bug that made this feel like it "waits for ages": it would silently
+	// start chewing through an unrelated, possibly much harder block before ever cycling
+	// back to interact. Instead we remember exactly which of the two possible positions
+	// (the clicked block itself, for tool transforms like shovel->path; or the position
+	// adjacent to the clicked face, for placing a new block against it) actually changed
+	// right after interacting, and lock onto that single position for the whole mining
+	// phase, regardless of where the crosshair drifts to afterwards.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
-		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
-			lastBreakingPos = null;
-			return;
-		}
-		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-		BlockPos pos = hitResult.getBlockPos();
-
 		if (placeMineAwaitingInteract) {
 			if (placeCooldownTicks > 0) {
 				placeCooldownTicks--;
 				return;
 			}
+			if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
+				return; // nothing to interact with yet, keep waiting
+			}
+			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+			placeMineCandidatePos = hitResult.getBlockPos();
+			placeMineCandidateAdjPos = placeMineCandidatePos.relative(hitResult.getDirection());
+			placeMineBeforeState = client.level.getBlockState(placeMineCandidatePos);
+			placeMineBeforeAdjState = client.level.getBlockState(placeMineCandidateAdjPos);
+			placeMineDirection = hitResult.getDirection();
+
 			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
 			player.swing(InteractionHand.OFF_HAND);
+
 			placeMineAwaitingInteract = false;
+			placeMineResolving = true;
 			placeMineStuckTicks = 0;
-			lastBreakingPos = null; // force a fresh startDestroyBlock once mining begins
-			return; // let the interaction resolve before mining starts on the same tick
+			return;
 		}
 
-		if (client.level.getBlockState(pos).isAir() || ++placeMineStuckTicks > PLACE_MINE_STUCK_TIMEOUT_TICKS) {
-			// Either the interacted block is already gone (mined, or the interaction never
-			// produced anything minable to begin with) or it's stuck and not breaking -
+		if (placeMineResolving) {
+			BlockState nowAdjState = client.level.getBlockState(placeMineCandidateAdjPos);
+			if (!nowAdjState.equals(placeMineBeforeAdjState)) {
+				placeMineTargetPos = placeMineCandidateAdjPos;
+			} else if (!client.level.getBlockState(placeMineCandidatePos).equals(placeMineBeforeState)) {
+				placeMineTargetPos = placeMineCandidatePos;
+			} else if (++placeMineStuckTicks > 2) {
+				// Interaction didn't visibly do anything within a couple of ticks (wrong
+				// tool, out of items, blocked) - go back to interacting instead of
+				// committing to a mining target that was never actually placed.
+				placeMineAwaitingInteract = true;
+				placeMineResolving = false;
+				placeCooldownTicks = nextPlaceCooldown(config);
+				return;
+			} else {
+				return; // still waiting to see which position changed
+			}
+			placeMineResolving = false;
+			placeMineStuckTicks = 0;
+			lastBreakingPos = null; // force a fresh startDestroyBlock
+		}
+
+		if (client.level.getBlockState(placeMineTargetPos).isAir()
+				|| ++placeMineStuckTicks > PLACE_MINE_STUCK_TIMEOUT_TICKS) {
+			// Either the target is already gone (mined) or it's stuck and not breaking -
 			// either way, go back to interacting instead of mining forever.
 			placeMineAwaitingInteract = true;
 			placeCooldownTicks = nextPlaceCooldown(config);
 			return;
 		}
 
-		mineBlock(client, player, hitResult, pos);
+		mineBlockAt(client, player, placeMineTargetPos, placeMineDirection);
 	}
 
 	private static int nextPlaceCooldown(SmartAutoMineConfig config) {
