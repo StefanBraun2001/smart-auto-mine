@@ -5,7 +5,7 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **A0.4** (alpha, tested), **MC 26.2 only** (1.20.4 support
+Current build: **A0.4H1** (alpha, hotfix), **MC 26.2 only** (1.20.4 support
 was dropped as of A0.4). Grab a built jar from the
 [Releases](../../releases) page, or build from source with
 `./gradlew build` inside `26.2/`.
@@ -24,9 +24,10 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   safety stop, max duration.
 - "Use more tools": rotates to another hotbar item matching a keyword when
   the current tool's durability guard trips.
-- Place-mine mode: right-clicks with the offhand item every tick (with
-  configurable, optionally randomized delay) to auto-wall-in behind you
-  while tunneling.
+- Place-mine mode: interacts with the offhand item, then mines exactly the
+  result of that interaction (a placed ore block, a tilled dirt path, etc.)
+  before interacting again - e.g. for a Fortune III ore farm or path
+  farming, replacing the manual "hold both buttons + F3+T" cheese.
 - Auto-eat, identical to Smart Auto Attack.
 - **Presets**: named bundles of duration/durability/tool-rotation/auto-eat
   settings, managed via client-side commands

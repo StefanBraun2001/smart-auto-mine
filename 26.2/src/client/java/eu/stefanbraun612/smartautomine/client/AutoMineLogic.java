@@ -21,17 +21,29 @@ import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AutoMineLogic {
+	// Safety cap on the mining phase of place-mine, in case the interacted block never
+	// actually breaks (wrong tool, an interaction that didn't produce anything minable,
+	// ran out of items) - without this it would get stuck mining the same spot forever
+	// instead of ever interacting again.
+	private static final int PLACE_MINE_STUCK_TIMEOUT_TICKS = 100;
+
 	private static long elapsedActiveTicks = 0;
 	private static BlockPos lastBreakingPos = null;
-	// Counts down between offhand place attempts in place-mine mode - placing every
-	// single tick (20/s) is faster than the manual "hold both buttons + F3+T glitch"
-	// technique it's meant to replace, so this adds the same slight delay back in.
+	// Counts down between place-mine cycles - placing/interacting every single tick
+	// (20/s) is faster than the manual "hold both buttons + F3+T glitch" technique it's
+	// meant to replace, so this adds the same slight delay back in.
 	private static int placeCooldownTicks = 0;
+	// Place-mine alternates between interacting (offhand right-click) and mining - true
+	// means "interact next", false means "mine the result of the last interaction".
+	private static boolean placeMineAwaitingInteract = true;
+	private static int placeMineStuckTicks = 0;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		lastBreakingPos = null;
 		placeCooldownTicks = 0;
+		placeMineAwaitingInteract = true;
+		placeMineStuckTicks = 0;
 	}
 
 	public static void tick(Minecraft client) {
@@ -69,6 +81,14 @@ public class AutoMineLogic {
 			return;
 		}
 
+		if (SmartAutoMineClient.isPlaceMineActive()) {
+			tickPlaceMine(client, player, config);
+		} else {
+			tickRegularMining(client, player);
+		}
+	}
+
+	private static void tickRegularMining(Minecraft client, LocalPlayer player) {
 		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
 			lastBreakingPos = null;
 			return;
@@ -79,7 +99,10 @@ public class AutoMineLogic {
 			lastBreakingPos = null;
 			return;
 		}
+		mineBlock(client, player, hitResult, pos);
+	}
 
+	private static void mineBlock(Minecraft client, LocalPlayer player, BlockHitResult hitResult, BlockPos pos) {
 		if (!pos.equals(lastBreakingPos)) {
 			client.gameMode.startDestroyBlock(pos, hitResult.getDirection());
 			lastBreakingPos = pos;
@@ -87,21 +110,47 @@ public class AutoMineLogic {
 			client.gameMode.continueDestroyBlock(pos, hitResult.getDirection());
 		}
 		player.swing(InteractionHand.MAIN_HAND);
+	}
 
-		if (SmartAutoMineClient.isPlaceMineActive()) {
+	// Replicates the manual "hold RMB, then LMB, then F3+T" cheese used to place/interact
+	// with something (a raw ore block for a Fortune pickaxe farm, tilling dirt into a path
+	// before mining it, etc.) and then mine exactly the result of that action - not a
+	// supplement to normal forward tunneling, but its own self-contained interact-then-mine
+	// cycle. The two steps have to happen in that order and on separate ticks: interacting
+	// first lets whatever placement/transformation it causes actually take effect before
+	// mining ever touches that position, whereas mining unconditionally every tick (the
+	// previous implementation) always mined the block's *pre-interaction* state.
+	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
+		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
+			lastBreakingPos = null;
+			return;
+		}
+		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+		BlockPos pos = hitResult.getBlockPos();
+
+		if (placeMineAwaitingInteract) {
 			if (placeCooldownTicks > 0) {
 				placeCooldownTicks--;
-			} else {
-				// Right-clicking the same hit result while the targeted block still exists
-				// generally can't place there directly - vanilla instead tries to place
-				// against the adjacent position derived from the hit side, which in a
-				// forward-tunneling pattern is usually the space just mined. That's what
-				// gives the "wall up behind you while mining" effect; this is the part most
-				// likely to need retuning once tested against a real tunnel.
-				client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
-				placeCooldownTicks = nextPlaceCooldown(config);
+				return;
 			}
+			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
+			player.swing(InteractionHand.OFF_HAND);
+			placeMineAwaitingInteract = false;
+			placeMineStuckTicks = 0;
+			lastBreakingPos = null; // force a fresh startDestroyBlock once mining begins
+			return; // let the interaction resolve before mining starts on the same tick
 		}
+
+		if (client.level.getBlockState(pos).isAir() || ++placeMineStuckTicks > PLACE_MINE_STUCK_TIMEOUT_TICKS) {
+			// Either the interacted block is already gone (mined, or the interaction never
+			// produced anything minable to begin with) or it's stuck and not breaking -
+			// either way, go back to interacting instead of mining forever.
+			placeMineAwaitingInteract = true;
+			placeCooldownTicks = nextPlaceCooldown(config);
+			return;
+		}
+
+		mineBlock(client, player, hitResult, pos);
 	}
 
 	private static int nextPlaceCooldown(SmartAutoMineConfig config) {

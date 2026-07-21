@@ -33,7 +33,7 @@
 	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "Used when Use more tools is on. Substring match (case-insensitive) against the tool's item ID, e.g. 'pickaxe' matches minecraft:diamond_pickaxe, minecraft:netherite_pickaxe, etc.",
 
 	"text.autoconfig.smartautomine.option.placeMineIntervalTicks": "Place-mine delay (ticks)",
-	"text.autoconfig.smartautomine.option.placeMineIntervalTicks.@Tooltip": "Used when Randomize place-mine delay is off. Ticks to wait between offhand place attempts while place-mine mode is running. Placing every single tick is faster than the manual 'hold both mouse buttons + F3+T glitch' technique this mode replaces - raise this if it still feels too fast, lower it (down to 0) for as-fast-as-possible placing.",
+	"text.autoconfig.smartautomine.option.placeMineIntervalTicks.@Tooltip": "Used when Randomize place-mine delay is off. Ticks to wait after mining the previous block before interacting again. Raise this if the offhand interaction and the mining don't have time to settle in between (e.g. a right-click that needs a moment to register before it's safe to mine), lower it (down to 0) to cycle as fast as possible.",
 
 	"text.autoconfig.smartautomine.option.randomizePlaceMineDelay": "Randomize place-mine delay",
 	"text.autoconfig.smartautomine.option.randomizePlaceMineDelay.@Tooltip": "Off (default): use the fixed Place-mine delay above every time. On: pick a random delay between the min/max below each time instead, closer to how the manual F3+T glitch technique behaves in practice (it isn't perfectly consistent either).",
