@@ -84,13 +84,21 @@ public class AutoMineLogic {
 
 	private static void tickRegularMining(Minecraft client, LocalPlayer player) {
 		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
+			// No valid target at all - matches vanilla's continueAttack falling through to
+			// gameMode.stopDestroyBlock() when the crosshair isn't on a block.
 			abandonMining(client);
 			return;
 		}
 		BlockHitResult hitResult = (BlockHitResult) client.hitResult;
 		BlockPos pos = hitResult.getBlockPos();
 		if (client.level.getBlockState(pos).isAir()) {
-			abandonMining(client);
+			// The targeted position is momentarily air (e.g. right after place-mine's last
+			// block finished breaking, before the next one is placed) - vanilla's own
+			// continueAttack silently does nothing in this exact case, it does NOT call
+			// stopDestroyBlock(). Calling it here was wrong: stopDestroyBlock() resets the
+			// attack-cooldown ticker, so doing it once every place-mine cycle looked like
+			// the attack indicator constantly resetting/recharging.
+			lastBreakingPos = null;
 			return;
 		}
 		mineBlockAt(client, player, pos, hitResult.getDirection());
