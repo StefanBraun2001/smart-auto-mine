@@ -101,29 +101,29 @@ public class AutoMineLogic {
 		player.swing(InteractionHand.MAIN_HAND);
 	}
 
-	// Replicates physically holding RMB then LMB then triggering F3+T: interact with the
-	// offhand item on its own cadence, and mine whatever's currently under the crosshair,
-	// every tick - no tracking of what got placed, no locking onto a remembered position,
-	// no checking whether a block is actually there. Both actions just act on the live
-	// crosshair target, exactly like the manual technique does.
+	// Replicates a genuinely-held right-click + left-click (what F3+T actually produces:
+	// not repeated clicks, but the game believing both buttons are still physically down,
+	// forever, processed by vanilla's own per-tick input handling).
 	//
-	// This naturally handles every intended use case without any special-casing: placing
-	// an ore block against a slow-to-mine reference block works because Minecraft's own
-	// per-tick raycast starts hitting the newly placed ore instead of the reference the
-	// moment it exists (it's physically closer along the same ray) - mining briefly acts
-	// on the reference for a single tick right after interacting, but a "slow to mine"
-	// reference is specifically chosen so that single tick of progress never matters.
-	// Tilling/transform interactions (shovel -> path, etc.) and crop harvest-and-replant
-	// loops work the same way, acting on whatever's live under the crosshair each tick.
+	// Vanilla's real rule, confirmed by decompiling Minecraft.startUseItem(): interacting
+	// is completely blocked while gameMode.isDestroying() is true - you cannot place/till
+	// while actively mid-way through breaking a block. This is what actually drives the
+	// place-then-mine cycle, not two independent loops: interacting only succeeds in the
+	// moments isDestroying is false (right as the previous target finishes breaking), at
+	// which point the newly placed/transformed block becomes the mining target (it's
+	// physically closer along the same ray than whatever you clicked against), gets mined
+	// to completion, isDestroying goes false again, and interacting succeeds again. A
+	// reference block chosen to be slow/impossible to mine just means that very first
+	// interact (before anything exists to occlude it) is the only one that ever lands on
+	// it - every cycle after that lands on the block actually placed.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
-		if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
-			if (placeCooldownTicks > 0) {
-				placeCooldownTicks--;
-			} else {
-				client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, (BlockHitResult) client.hitResult);
-				player.swing(InteractionHand.OFF_HAND);
-				placeCooldownTicks = nextPlaceCooldown(config);
-			}
+		if (placeCooldownTicks > 0) {
+			placeCooldownTicks--;
+		} else if (!client.gameMode.isDestroying() && client.hitResult != null
+				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
+			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, (BlockHitResult) client.hitResult);
+			player.swing(InteractionHand.OFF_HAND);
+			placeCooldownTicks = nextPlaceCooldown(config);
 		}
 		tickRegularMining(client, player);
 	}
