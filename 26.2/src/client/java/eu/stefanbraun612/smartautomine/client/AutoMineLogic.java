@@ -12,6 +12,7 @@ import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -128,28 +129,45 @@ public class AutoMineLogic {
 	// not repeated clicks, but the game believing both buttons are still physically down,
 	// forever, processed by vanilla's own per-tick input handling).
 	//
-	// Vanilla's real rule, confirmed by decompiling Minecraft.startUseItem(): interacting
-	// is completely blocked while gameMode.isDestroying() is true - you cannot place/till
-	// while actively mid-way through breaking a block. This is what actually drives the
-	// place-then-mine cycle, not two independent loops: interacting only succeeds in the
-	// moments isDestroying is false (right as the previous target finishes breaking), at
-	// which point the newly placed/transformed block becomes the mining target (it's
-	// physically closer along the same ray than whatever you clicked against), gets mined
-	// to completion, isDestroying goes false again, and interacting succeeds again. A
-	// reference block chosen to be slow/impossible to mine just means that very first
-	// interact (before anything exists to occlude it) is the only one that ever lands on
-	// it - every cycle after that lands on the block actually placed.
+	// Two vanilla rules, confirmed by decompiling Minecraft.startUseItem(), drive this:
+	//
+	// 1. A single right-click tries the MAIN hand's item first, and only falls through to
+	//    the OFFHAND item if the main hand's interaction doesn't apply (returns Pass, not
+	//    Success or Fail). This is what makes a single held click do two different things
+	//    depending on what's there: a shovel in the main hand tills an existing dirt/grass
+	//    block on contact (succeeds, offhand never even tried that click); once there's
+	//    nothing left to till, the shovel's interaction passes through and the offhand's
+	//    placeable block (e.g. dirt) places instead. No manual switching needed - vanilla's
+	//    own hand-priority order does it.
+	//
+	// 2. Interacting is completely blocked while gameMode.isDestroying() is true - you
+	//    cannot place/till while actively mid-way through breaking a block. Combined with
+	//    (1), this is what drives the whole place-then-till-then-mine cycle automatically:
+	//    interacting only succeeds in the moments isDestroying is false (right as the
+	//    previous target finishes breaking), at which point the newly placed/tilled block
+	//    becomes the mining target (it's physically closer along the same ray than whatever
+	//    you clicked against), gets mined to completion, isDestroying goes false again, and
+	//    interacting succeeds again.
 	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config) {
 		boolean validTarget = client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK;
 		if (placeCooldownTicks > 0) {
 			placeCooldownTicks--;
 		} else if (!client.gameMode.isDestroying() && validTarget) {
 			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
-			PLACE_MINE_LOG.info("INTERACT pos={} dir={} state={} offhand={}",
+			InteractionResult mainHandResult = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
+			InteractionResult result = mainHandResult;
+			InteractionHand successHand = InteractionHand.MAIN_HAND;
+			if (!(mainHandResult instanceof InteractionResult.Success)
+					&& !(mainHandResult instanceof InteractionResult.Fail)) {
+				result = client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
+				successHand = InteractionHand.OFF_HAND;
+			}
+			PLACE_MINE_LOG.info("INTERACT pos={} dir={} state={} mainHandResult={} finalResult={} via={}",
 					hitResult.getBlockPos(), hitResult.getDirection(),
-					client.level.getBlockState(hitResult.getBlockPos()), player.getOffhandItem());
-			client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
-			player.swing(InteractionHand.OFF_HAND);
+					client.level.getBlockState(hitResult.getBlockPos()), mainHandResult, result, successHand);
+			if (result instanceof InteractionResult.Success) {
+				player.swing(successHand);
+			}
 			placeCooldownTicks = nextPlaceCooldown(config);
 		} else if (placeCooldownTicks == 0) {
 			PLACE_MINE_LOG.info("BLOCKED isDestroying={} validTarget={} hitType={}",
