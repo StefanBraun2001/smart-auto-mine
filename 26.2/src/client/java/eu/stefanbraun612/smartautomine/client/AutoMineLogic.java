@@ -39,6 +39,10 @@ public class AutoMineLogic {
 	// be topped up automatically (a dropper can't place into it), so once it's empty it
 	// stays empty until the run ends and reset() clears this back to -1.
 	private static int offhandEmptyGraceTicks = -1;
+	// The offhand-empty grace only makes sense once we've actually placed something. Track
+	// whether the offhand has ever held items this run so starting place-mine with an
+	// already-empty offhand stops immediately instead of running a pointless grace period.
+	private static boolean offhandHadItems = false;
 	// Direct-drive place-mine pacing (Advanced mode, screen open only). Reset whenever we're
 	// NOT direct-driving place-mine, so each screen-open burst starts fresh.
 	private static int placeInteractDelay = 0;
@@ -47,6 +51,7 @@ public class AutoMineLogic {
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		offhandEmptyGraceTicks = -1;
+		offhandHadItems = false;
 		resetDirectPlaceMineState();
 	}
 
@@ -85,18 +90,26 @@ public class AutoMineLogic {
 			return;
 		}
 
-		if (SmartAutoMineClient.isPlaceMineActive() && player.getOffhandItem().isEmpty()) {
-			// Deliberately the only stop condition with a grace period: it's not a safety
-			// condition, just "ran out of material", so finishing the block already placed
-			// is harmless. Durability/hunger/health/time all still stop immediately.
-			if (!config.finishLastBlockOnEmptyOffhand || offhandEmptyGraceTicks == 0) {
-				stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
-				return;
+		if (SmartAutoMineClient.isPlaceMineActive()) {
+			if (!player.getOffhandItem().isEmpty()) {
+				offhandHadItems = true;
+			} else {
+				// The grace period is only for finishing the block we just placed, so it
+				// applies only once the offhand has actually held items this run - starting
+				// with an already-empty offhand has nothing to finish and stops right away.
+				// Even with the grace, it's the only stop with a delay: running out of
+				// material isn't a safety condition. Durability/hunger/health/time all still
+				// stop immediately.
+				boolean grace = config.finishLastBlockOnEmptyOffhand && offhandHadItems;
+				if (!grace || offhandEmptyGraceTicks == 0) {
+					stop(client, config, "Smart Auto Mine: stopped (offhand is empty)");
+					return;
+				}
+				if (offhandEmptyGraceTicks < 0) {
+					offhandEmptyGraceTicks = OFFHAND_EMPTY_GRACE_TICKS;
+				}
+				offhandEmptyGraceTicks--;
 			}
-			if (offhandEmptyGraceTicks < 0) {
-				offhandEmptyGraceTicks = OFFHAND_EMPTY_GRACE_TICKS;
-			}
-			offhandEmptyGraceTicks--;
 		}
 
 		boolean screenOpen = client.gui.screen() != null;
