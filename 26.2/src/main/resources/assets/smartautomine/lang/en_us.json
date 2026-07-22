@@ -41,6 +41,9 @@
 	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand": "Finish last block when offhand empties",
 	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand.@Tooltip": "Place-mine only. Off (default): stop the instant the offhand runs out, which can leave the block you just placed sitting there unmined. On: keep going for another 0.75 seconds so that last block still gets finished. Only applies to running out of offhand items - durability, hunger, health and time limits always stop immediately.",
 
+	"text.autoconfig.smartautomine.option.pauseTimerWhileMiningPaused": "Pause timer while mining is paused",
+	"text.autoconfig.smartautomine.option.pauseTimerWhileMiningPaused.@Tooltip": "Affects the Max duration timer. Off (default): the timer always counts down, even while the mod is paused with a screen open (in a mode that pauses, i.e. regular Vanilla input or place-mine Vanilla). On: the timer freezes during that pause, so the limit measures actual working time instead of idle menu time. Time spent auto-eating is always excluded regardless.",
+
 	"text.autoconfig.smartautomine.option.feedbackMode": "Feedback message",
 	"text.autoconfig.smartautomine.option.feedbackMode.@Tooltip": "How to notify you when auto-mine toggles or auto-stops.",
 

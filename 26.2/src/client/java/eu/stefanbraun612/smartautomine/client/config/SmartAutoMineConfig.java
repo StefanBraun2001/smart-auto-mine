@@ -76,6 +76,9 @@ public class SmartAutoMineConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean finishLastBlockOnEmptyOffhand = false;
 
+	@ConfigEntry.Gui.Tooltip
+	public boolean pauseTimerWhileMiningPaused = false;
+
 	// --- General / feedback ---
 
 	public enum FeedbackMode {

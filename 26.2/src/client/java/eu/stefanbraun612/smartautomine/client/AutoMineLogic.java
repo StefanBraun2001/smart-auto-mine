@@ -67,7 +67,17 @@ public class AutoMineLogic {
 			return;
 		}
 
-		elapsedActiveTicks++;
+		boolean placeMine = SmartAutoMineClient.isPlaceMineActive();
+		boolean screenOpen = client.gui.screen() != null;
+		boolean miningPaused = isMiningPaused(config, placeMine, screenOpen);
+
+		// Max-duration timer. Normally it counts every tick, but with the toggle on it freezes
+		// while the mod is paused (a screen open in a mode that pauses mining), so the limit
+		// measures actual working time rather than idle menu time - matching how the timer
+		// already skips ticks spent auto-eating (that path doesn't run tick() at all).
+		if (!miningPaused || !config.pauseTimerWhileMiningPaused) {
+			elapsedActiveTicks++;
+		}
 
 		if (!passesHungerSafety(player, config)) {
 			stop(client, config, "Smart Auto Mine: stopped (hunger too low)");
@@ -90,7 +100,7 @@ public class AutoMineLogic {
 			return;
 		}
 
-		if (SmartAutoMineClient.isPlaceMineActive()) {
+		if (placeMine) {
 			if (!player.getOffhandItem().isEmpty()) {
 				offhandHadItems = true;
 			} else {
@@ -112,12 +122,24 @@ public class AutoMineLogic {
 			}
 		}
 
-		boolean screenOpen = client.gui.screen() != null;
-		if (SmartAutoMineClient.isPlaceMineActive()) {
+		if (placeMine) {
 			tickPlaceMine(client, player, config, screenOpen);
 		} else {
 			tickRegularMine(client, player, config, screenOpen);
 		}
+	}
+
+	// True only when the mod deliberately does nothing this tick because a screen is open in
+	// a mode that pauses mining (regular Vanilla input, or place-mine Vanilla). The other
+	// modes keep mining/placing through a screen by driving the game directly, and with no
+	// screen open everything mines, so those never count as paused.
+	private static boolean isMiningPaused(SmartAutoMineConfig config, boolean placeMine, boolean screenOpen) {
+		if (!screenOpen) {
+			return false;
+		}
+		return placeMine
+				? config.placeMineMenuMode == SmartAutoMineConfig.PlaceMineMenuMode.VANILLA
+				: config.regularMineMode == SmartAutoMineConfig.RegularMineMode.VANILLA_INPUT;
 	}
 
 	// The default drive is to hold the mouse buttons and let vanilla's own per-tick input
