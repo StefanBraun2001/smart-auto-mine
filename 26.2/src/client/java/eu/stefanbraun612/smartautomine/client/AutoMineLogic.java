@@ -5,13 +5,18 @@ import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 
 import java.util.Locale;
 
@@ -20,6 +25,13 @@ public class AutoMineLogic {
 	// still gets mined instead of being left sitting there. Only ever applies to the
 	// offhand-empty stop - see tick().
 	private static final int OFFHAND_EMPTY_GRACE_TICKS = 15;
+	// Ticks between interacts when place-mine is driving the game directly (screen open,
+	// Advanced mode). Matches vanilla's own held-right-click cadence (rightClickDelay = 4).
+	private static final int INTERACT_DELAY_TICKS = 4;
+	// One vanilla destroyDelay's worth of mining hold-off at the start of a direct-drive
+	// place-mine burst, so the first block gets its follow-up interact (e.g. a shovel till)
+	// before mining engages, exactly as the held-key path gets for free from vanilla timing.
+	private static final int STARTUP_MINE_SUPPRESS_TICKS = 5;
 
 	private static long elapsedActiveTicks = 0;
 	// -1 = not counting; set to the grace length once the offhand first reads empty and
@@ -27,10 +39,20 @@ public class AutoMineLogic {
 	// be topped up automatically (a dropper can't place into it), so once it's empty it
 	// stays empty until the run ends and reset() clears this back to -1.
 	private static int offhandEmptyGraceTicks = -1;
+	// Direct-drive place-mine pacing (Advanced mode, screen open only). Reset whenever we're
+	// NOT direct-driving place-mine, so each screen-open burst starts fresh.
+	private static int placeInteractDelay = 0;
+	private static int placeMineStartupTicks = STARTUP_MINE_SUPPRESS_TICKS;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		offhandEmptyGraceTicks = -1;
+		resetDirectPlaceMineState();
+	}
+
+	private static void resetDirectPlaceMineState() {
+		placeInteractDelay = 0;
+		placeMineStartupTicks = STARTUP_MINE_SUPPRESS_TICKS;
 	}
 
 	public static void tick(Minecraft client) {
@@ -77,22 +99,73 @@ public class AutoMineLogic {
 			offhandEmptyGraceTicks--;
 		}
 
-		holdInputs(client, SmartAutoMineClient.isPlaceMineActive());
+		boolean screenOpen = client.gui.screen() != null;
+		if (SmartAutoMineClient.isPlaceMineActive()) {
+			tickPlaceMine(client, player, config, screenOpen);
+		} else {
+			tickRegularMine(client, player, config, screenOpen);
+		}
 	}
 
-	// This is the whole mining/placing implementation: hold the mouse buttons down and let
-	// vanilla's own per-tick input handling do everything, which is literally what the F3+T
-	// technique produces (the client believing the buttons never got released).
+	// The default drive is to hold the mouse buttons and let vanilla's own per-tick input
+	// handling do all the mining/placing - literally what the F3+T technique produces (the
+	// client believing the buttons never got released). This gives vanilla's exact timing
+	// (rightClickDelay, destroyDelay, main-then-offhand hand priority) for free and, crucially,
+	// causes zero conflict: driving gameMode.continueDestroyBlock/useItemOn directly while
+	// vanilla's handleKeybinds is also running means vanilla's own continueAttack() calls
+	// stopDestroyBlock() every tick (the attack key isn't physically held), aborting the mod's
+	// break and resetting the attack-strength ticker - the constantly-blinking attack indicator.
 	//
-	// Driving gameMode.continueDestroyBlock/useItemOn directly instead - what every previous
-	// version did - actively fights vanilla. Minecraft.handleKeybinds() runs continueAttack()
-	// every single tick, and with the attack key not physically held it takes the "else"
-	// branch straight to gameMode.stopDestroyBlock(). So each tick vanilla ABORTED the break
-	// the mod had just started and called resetAttackStrengthTicker() - that's both the
-	// constantly-resetting attack indicator and why mining/tilling was erratic and kept
-	// missing: no break ever got to run uninterrupted. Holding the keys removes the conflict
-	// entirely and gives exactly vanilla's timing (rightClickDelay, destroyDelay, hand
-	// priority) for free, so place-mine matches the manual technique instead of approximating it.
+	// The catch: handleKeybinds() is skipped entirely while a screen is open, so held keys do
+	// nothing then. To keep working through inventory/chat we switch to driving the game
+	// directly - which is safe precisely because, with a screen open, vanilla's conflicting
+	// continueAttack() isn't running to fight it. The mode options below pick between these.
+	private static void tickRegularMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config,
+			boolean screenOpen) {
+		resetDirectPlaceMineState(); // not place-mine; keep its burst state fresh for next time
+		switch (config.regularMineMode) {
+			case LEGACY -> {
+				// Always drive directly (pre-A0.4.1 behaviour): continues through screens, but
+				// blinks the attack indicator when no screen is open, same as Toro's Auto Mine.
+				releaseInputs(client);
+				directMine(client, player, true);
+			}
+			case VANILLA_INPUT -> {
+				if (screenOpen) {
+					releaseInputs(client); // pause; releasing also lets vanilla clear missTime on close
+				} else {
+					holdInputs(client, false);
+				}
+			}
+			case CONTINUOUS -> {
+				if (screenOpen) {
+					releaseInputs(client);
+					directMine(client, player, true);
+				} else {
+					holdInputs(client, false);
+				}
+			}
+		}
+	}
+
+	private static void tickPlaceMine(Minecraft client, LocalPlayer player, SmartAutoMineConfig config,
+			boolean screenOpen) {
+		boolean directNow = screenOpen && config.placeMineMenuMode == SmartAutoMineConfig.PlaceMineMenuMode.ADVANCED;
+		if (!directNow) {
+			// Held-key path (no screen), or a paused/Vanilla screen. Keep the direct-drive
+			// burst state fresh so it starts clean the moment a screen opens in Advanced mode.
+			resetDirectPlaceMineState();
+			if (screenOpen) {
+				releaseInputs(client); // pause; releasing also lets vanilla clear missTime on close
+			} else {
+				holdInputs(client, true);
+			}
+			return;
+		}
+		releaseInputs(client);
+		directPlaceMine(client, player);
+	}
+
 	private static void holdInputs(Minecraft client, boolean placeMine) {
 		client.options.keyAttack.setDown(true);
 		// Set explicitly rather than only on true: plain mining must not interact with
@@ -106,6 +179,56 @@ public class AutoMineLogic {
 	public static void releaseInputs(Minecraft client) {
 		client.options.keyAttack.setDown(false);
 		client.options.keyUse.setDown(false);
+	}
+
+	// Direct-drive mining, mirroring vanilla Minecraft.continueAttack(down=true): on a solid
+	// block, continueDestroyBlock (which internally handles start-vs-continue and the 5-tick
+	// post-break destroyDelay); otherwise stopDestroyBlock. Place-mine passes false for
+	// abortWhenOffBlock, since stopDestroyBlock resets the attack-strength ticker and the
+	// place/mine cycle briefly leaves the crosshair off a block between placing and mining.
+	private static void directMine(Minecraft client, LocalPlayer player, boolean abortWhenOffBlock) {
+		if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
+			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+			BlockPos pos = hitResult.getBlockPos();
+			if (!client.level.getBlockState(pos).isAir()
+					&& client.gameMode.continueDestroyBlock(pos, hitResult.getDirection())) {
+				player.swing(InteractionHand.MAIN_HAND);
+			}
+			return;
+		}
+		if (abortWhenOffBlock) {
+			client.gameMode.stopDestroyBlock();
+		}
+	}
+
+	// Direct-drive place-mine, used only while a screen is open in Advanced mode (vanilla's
+	// own input handling is switched off then, so we reproduce it): interact once per gap on
+	// the rightClickDelay cadence (main hand first, then offhand - vanilla's hand priority, so
+	// a shovel tills existing dirt and the offhand places a new block when there's nothing to
+	// till), gated by gameMode.isDestroying() so it only fires between breaks, then mine.
+	private static void directPlaceMine(Minecraft client, LocalPlayer player) {
+		if (placeInteractDelay > 0) {
+			placeInteractDelay--;
+		}
+		if (placeInteractDelay == 0 && !client.gameMode.isDestroying() && client.hitResult != null
+				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
+			BlockHitResult hitResult = (BlockHitResult) client.hitResult;
+			InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
+			InteractionHand successHand = InteractionHand.MAIN_HAND;
+			if (!(result instanceof InteractionResult.Success) && !(result instanceof InteractionResult.Fail)) {
+				result = client.gameMode.useItemOn(player, InteractionHand.OFF_HAND, hitResult);
+				successHand = InteractionHand.OFF_HAND;
+			}
+			if (result instanceof InteractionResult.Success) {
+				player.swing(successHand);
+			}
+			placeInteractDelay = INTERACT_DELAY_TICKS;
+		}
+		if (placeMineStartupTicks > 0) {
+			placeMineStartupTicks--;
+			return;
+		}
+		directMine(client, player, false);
 	}
 
 	// Used while auto-eat is mid-chew: mining has to stop (a held attack key cancels the

@@ -19,17 +19,28 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
 
 - Two separate toggle keybinds: regular mining (default **K**) and
   place-mine mode (default **L**) - only one runs at a time.
-- Replicates vanilla's own hold-to-break behavior.
+- Works by holding the mouse buttons down and letting the game's own input
+  handling mine/place - literally what the manual "hold buttons + F3+T"
+  glitch does - so it inherits vanilla's exact timing and hand priority.
+- Regular mining drive (config, three modes): **Continuous** (default) holds
+  the button while playing and drives the game directly only while a screen
+  is open, so it keeps mining through inventory/chat with no attack-indicator
+  flicker; **Vanilla input** only holds the button (no flicker, but pauses
+  while a screen is open); **Legacy** always drives directly (keeps mining
+  through screens, but the attack indicator flickers, like Toro's Auto Mine).
 - Stop conditions: min durability (absolute/%), hunger safety stop, health
   safety stop, max duration.
 - "Use more tools": rotates to another hotbar item matching a keyword when
   the current tool's durability guard trips.
-- Place-mine mode: drives what physically holding both mouse buttons does
-  (right-click tries main-hand then offhand, plus held left-click to mine),
-  paced entirely by vanilla's own "can't place while mid-break" timing - a
-  faithful stand-in for the manual "hold both buttons + F3+T" cheese, e.g.
-  a Fortune III ore farm or a coarse-dirt + shovel path farm. No delay
-  settings; the timing is vanilla's.
+- Place-mine mode: right-click tries main-hand then offhand (so a main-hand
+  shovel tills existing dirt and the offhand places a new block when there's
+  nothing to till) alongside held left-click to mine - a faithful stand-in
+  for the manual "hold both buttons + F3+T" cheese, e.g. a Fortune III ore
+  farm or a coarse-dirt + shovel path farm. Optionally keeps running 0.75s
+  after the offhand empties so the last placed block still gets mined. While
+  a screen is open it pauses by default (**Vanilla**); an experimental
+  **Advanced** mode keeps it going through the screen but may not place/till
+  perfectly reliably then.
 - Auto-eat, identical to Smart Auto Attack.
 - **Presets**: named bundles of duration/durability/tool-rotation/auto-eat
   settings, managed via client-side commands

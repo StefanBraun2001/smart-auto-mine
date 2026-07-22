@@ -32,6 +32,12 @@
 	"text.autoconfig.smartautomine.option.toolKeyword": "Tool keyword",
 	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "Used when Use more tools is on. Substring match (case-insensitive) against the tool's item ID, e.g. 'pickaxe' matches minecraft:diamond_pickaxe, minecraft:netherite_pickaxe, etc.",
 
+	"text.autoconfig.smartautomine.option.regularMineMode": "Regular mining drive",
+	"text.autoconfig.smartautomine.option.regularMineMode.@Tooltip": "How plain mining is driven. CONTINUOUS (default): holds the mine button while playing (no attack-indicator flicker) and only drives the game directly while a screen is open, so it keeps mining through inventory/chat. VANILLA_INPUT: only ever holds the mine button - no flicker, but pauses while a screen is open. LEGACY: always drives the game directly (the pre-A0.4.1 behaviour) - keeps mining through screens, but the attack indicator flickers constantly, like Toro's Auto Mine.",
+
+	"text.autoconfig.smartautomine.option.placeMineMenuMode": "Place-mine while a screen is open",
+	"text.autoconfig.smartautomine.option.placeMineMenuMode.@Tooltip": "What place-mine does while inventory/chat is open. VANILLA (default): pauses, resumes when the screen closes - simple and reliable. ADVANCED (experimental): keeps placing and mining through an open screen by driving the game directly. It may not place/till perfectly reliably while the screen is open.",
+
 	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand": "Finish last block when offhand empties",
 	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand.@Tooltip": "Place-mine only. Off (default): stop the instant the offhand runs out, which can leave the block you just placed sitting there unmined. On: keep going for another 0.75 seconds so that last block still gets finished. Only applies to running out of offhand items - durability, hunger, health and time limits always stop immediately.",
 

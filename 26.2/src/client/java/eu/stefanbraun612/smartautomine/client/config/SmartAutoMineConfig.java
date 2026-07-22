@@ -42,8 +42,36 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	// Place-mine mode is not a config toggle - it's triggered by its own keybinding
 	// (default L) since only one mode can run at a time; see SmartAutoMineClient.
-	// It has no timing/delay options: mining and interacting are driven by holding the
-	// mouse buttons, so vanilla's own input handling supplies all the pacing.
+
+	// How regular mining is driven. See AutoMineLogic for the full reasoning.
+	public enum RegularMineMode {
+		// Hold the mouse button while playing (clean, no attack-indicator blink), switch to
+		// driving the game directly only while a screen is open, so mining continues through
+		// inventory/chat. Default.
+		CONTINUOUS,
+		// Only ever hold the mouse button. No blink, but pauses while a screen is open.
+		VANILLA_INPUT,
+		// Always drive the game directly (the pre-A0.4.1 behaviour). Continues through
+		// screens, but the attack indicator blinks constantly, same as Toro's Auto Mine.
+		LEGACY
+	}
+
+	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+	public RegularMineMode regularMineMode = RegularMineMode.CONTINUOUS;
+
+	// What place-mine does while a screen (inventory/chat) is open.
+	public enum PlaceMineMenuMode {
+		// Pause while a screen is open, resume on close. Default - simple and reliable.
+		VANILLA,
+		// Experimental: keep placing/mining through an open screen by driving the game
+		// directly. May not place/till perfectly reliably while the screen is open.
+		ADVANCED
+	}
+
+	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+	public PlaceMineMenuMode placeMineMenuMode = PlaceMineMenuMode.VANILLA;
 
 	@ConfigEntry.Gui.Tooltip
 	public boolean finishLastBlockOnEmptyOffhand = false;
