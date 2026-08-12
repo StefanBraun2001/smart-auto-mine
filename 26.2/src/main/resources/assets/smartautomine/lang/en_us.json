@@ -29,8 +29,11 @@
 	"text.autoconfig.smartautomine.option.useMoreTools": "Use more tools",
 	"text.autoconfig.smartautomine.option.useMoreTools.@Tooltip": "Off (default): stop as soon as the current tool's durability guard triggers. On: instead, look for another matching tool (see Tool keyword below) elsewhere in your hotbar and switch to it, only stopping once none are left with enough durability.",
 
+	"text.autoconfig.smartautomine.option.toolRotationMode": "Tool rotation mode",
+	"text.autoconfig.smartautomine.option.toolRotationMode.@Tooltip": "Used when Use more tools is on - how a hotbar item is judged as a valid replacement. KEYWORD: substring match against the item ID (see Tool keyword below). SAME_TYPE: any tool of the same class as the one that just ran low (e.g. any pickaxe replaces any pickaxe), regardless of material. EXACT_MATCH: only the exact same item (e.g. only another diamond pickaxe replaces a diamond pickaxe).",
+
 	"text.autoconfig.smartautomine.option.toolKeyword": "Tool keyword",
-	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "Used when Use more tools is on. Substring match (case-insensitive) against the tool's item ID, e.g. 'pickaxe' matches minecraft:diamond_pickaxe, minecraft:netherite_pickaxe, etc.",
+	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "Only used when Tool rotation mode is KEYWORD. Substring match (case-insensitive) against the tool's item ID, e.g. 'pickaxe' matches minecraft:diamond_pickaxe, minecraft:netherite_pickaxe, etc.",
 
 	"text.autoconfig.smartautomine.option.regularMineMode": "Regular mining drive",
 	"text.autoconfig.smartautomine.option.regularMineMode.@Tooltip": "How plain mining is driven. CONTINUOUS (default): holds the mine button while playing (no attack-indicator flicker) and only drives the game directly while a screen is open, so it keeps mining through inventory/chat. VANILLA_INPUT: only ever holds the mine button - no flicker, but pauses while a screen is open. LEGACY: always drives the game directly (the pre-A0.4.1 behaviour) - keeps mining through screens, but the attack indicator flickers constantly, like Toro's Auto Mine.",

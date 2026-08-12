@@ -10,14 +10,18 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
+import java.util.List;
 import java.util.Locale;
 
 public class AutoMineLogic {
@@ -47,11 +51,18 @@ public class AutoMineLogic {
 	// NOT direct-driving place-mine, so each screen-open burst starts fresh.
 	private static int placeInteractDelay = 0;
 	private static int placeMineStartupTicks = STARTUP_MINE_SUPPRESS_TICKS;
+	// Remembers the last non-empty main-hand item, for SAME_TYPE/EXACT_MATCH tool rotation.
+	// Needed because once a tool actually breaks (no durability floor set to catch it first),
+	// the main hand reads as empty/air by the time the rotation search runs - by then the
+	// item's own class/identity is gone, so without this there'd be nothing left to compare
+	// candidates against for those two modes.
+	private static ItemStack lastKnownMainHandItem = ItemStack.EMPTY;
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		offhandEmptyGraceTicks = -1;
 		offhandHadItems = false;
+		lastKnownMainHandItem = ItemStack.EMPTY;
 		resetDirectPlaceMineState();
 	}
 
@@ -316,12 +327,22 @@ public class AutoMineLogic {
 	// and the current one just dropped below the threshold). Returns false only when
 	// there's nothing left usable and the mod should stop.
 	private static boolean ensureUsableTool(Minecraft client, Player player, SmartAutoMineConfig config) {
-		if (hasEnoughDurability(player.getMainHandItem(), config)) {
+		ItemStack currentTool = player.getMainHandItem();
+		if (!currentTool.isEmpty()) {
+			lastKnownMainHandItem = currentTool; // still equipped - remember it in case it breaks entirely
+		}
+		if (hasEnoughDurability(currentTool, config)) {
 			return true;
 		}
 		if (!config.useMoreTools) {
 			return false;
 		}
+
+		// If the tool has already broken to empty/air (no durability floor set to catch it
+		// first), fall back to the last item we saw equipped so SAME_TYPE/EXACT_MATCH still
+		// have something meaningful to compare against - matching against air's own item
+		// class would otherwise match almost anything, including food.
+		ItemStack referenceTool = currentTool.isEmpty() ? lastKnownMainHandItem : currentTool;
 
 		Inventory inventory = player.getInventory();
 		for (int slot = 0; slot < 9; slot++) {
@@ -329,7 +350,7 @@ public class AutoMineLogic {
 				continue;
 			}
 			ItemStack candidate = inventory.getItem(slot);
-			if (candidate.isEmpty() || !matchesKeyword(candidate, config.toolKeyword)) {
+			if (candidate.isEmpty() || !matchesRotationCriteria(candidate, referenceTool, config)) {
 				continue;
 			}
 			if (!hasEnoughDurability(candidate, config)) {
@@ -339,6 +360,41 @@ public class AutoMineLogic {
 			return true;
 		}
 		return false;
+	}
+
+	// Pickaxes and swords (and most other vanilla tools as of this MC version) no longer
+	// have their own Item subclass - they're plain Item instances distinguished only by
+	// data components/tags, so comparing getClass() lumps them in with everything else
+	// that's also just a plain Item (including food). Use vanilla's own tool-category tags
+	// instead, which is also more correct for modded tools that register into them.
+	private static final List<TagKey<Item>> TOOL_TYPE_TAGS = List.of(
+			ItemTags.PICKAXES, ItemTags.AXES, ItemTags.SHOVELS, ItemTags.HOES, ItemTags.SWORDS, ItemTags.SPEARS);
+
+	private static boolean sameToolType(ItemStack candidate, ItemStack referenceTool) {
+		for (TagKey<Item> tag : TOOL_TYPE_TAGS) {
+			if (referenceTool.is(tag)) {
+				return candidate.is(tag);
+			}
+		}
+		// referenceTool isn't in any known tool-category tag (e.g. a trident, or a modded
+		// tool that doesn't register into one) - fall back to class equality, which still
+		// works for vanilla's remaining single-item-per-category tools.
+		return candidate.getItem().getClass() == referenceTool.getItem().getClass();
+	}
+
+	// referenceTool is the tool that just ran low (or, if it already broke to empty, the
+	// last non-empty item we saw equipped - see ensureUsableTool).
+	private static boolean matchesRotationCriteria(ItemStack candidate, ItemStack referenceTool, SmartAutoMineConfig config) {
+		if (referenceTool.isEmpty() && config.toolRotationMode != SmartAutoMineConfig.ToolRotationMode.KEYWORD) {
+			// Never saw a tool equipped this run - nothing to compare against, so SAME_TYPE/
+			// EXACT_MATCH can't mean anything yet (KEYWORD doesn't need a reference at all).
+			return false;
+		}
+		return switch (config.toolRotationMode) {
+			case KEYWORD -> matchesKeyword(candidate, config.toolKeyword);
+			case SAME_TYPE -> sameToolType(candidate, referenceTool);
+			case EXACT_MATCH -> candidate.getItem() == referenceTool.getItem();
+		};
 	}
 
 	private static boolean matchesKeyword(ItemStack stack, String keyword) {

@@ -37,8 +37,24 @@ public class SmartAutoMineConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean useMoreTools = false;
 
+	// How "use more tools" decides whether a hotbar item is a valid replacement.
+	public enum ToolRotationMode {
+		// Substring match (case-insensitive) against the item's registry ID - see toolKeyword.
+		KEYWORD,
+		// Same tool class as the one that just ran low (e.g. any pickaxe replaces any
+		// pickaxe), regardless of material - no keyword needed.
+		SAME_TYPE,
+		// Exact same item as the one that just ran low (e.g. only another diamond pickaxe
+		// replaces a diamond pickaxe) - the strictest mode.
+		EXACT_MATCH
+	}
+
 	@ConfigEntry.Gui.Tooltip
-	public String toolKeyword = "pickaxe"; // substring match against the item's registry ID
+	@ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+	public ToolRotationMode toolRotationMode = ToolRotationMode.KEYWORD;
+
+	@ConfigEntry.Gui.Tooltip
+	public String toolKeyword = "pickaxe"; // substring match against the item's registry ID - only used in KEYWORD mode
 
 	// Place-mine mode is not a config toggle - it's triggered by its own keybinding
 	// (default L) since only one mode can run at a time; see SmartAutoMineClient.
