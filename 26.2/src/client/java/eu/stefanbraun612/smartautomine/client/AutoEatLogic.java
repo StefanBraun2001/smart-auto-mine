@@ -47,13 +47,32 @@ public class AutoEatLogic {
 	// weapon/tool swap back before anything re-checks state).
 	private static final int WAIT_AFTER_EAT_TICKS = 10;
 
+	// EAT_ONCE: true once we've had our one bite for the current dip below the threshold -
+	// cleared the moment hunger rises back above it, so the next dip gets its own single bite.
+	private static boolean eatOnceLatched = false;
+	// DONT_OVEREAT / FILL_HUNGER: true from the moment hunger first dips below the threshold
+	// until the mode's own stop condition is met - lets those modes keep eating well past the
+	// threshold (up to no-waste or full-20) instead of stopping the instant one bite crosses it.
+	private static boolean eatingSessionActive = false;
+
+	public static void reset() {
+		eatOnceLatched = false;
+		eatingSessionActive = false;
+	}
+
 	public static void tick(Minecraft client) {
+		tick(client, false);
+	}
+
+	// forceFullHunger is set by AutoMineLogic while a health-guard recovery pause is in
+	// progress: eats regardless of the autoEatEnabled toggle or amount mode, straight up to a
+	// full hunger bar. Still needs a food source available (autoEatSlot or any-slot search) -
+	// with nothing eligible this is a no-op and the pause just waits out its timeout.
+	public static void tick(Minecraft client, boolean forceFullHunger) {
 		Player player = client.player;
 		if (player == null || client.gameMode == null) {
 			return;
 		}
-
-		SmartAutoMineConfig config = AutoConfig.getConfigHolder(SmartAutoMineConfig.class).getConfig();
 
 		if (settleTicksLeft > 0) {
 			settleTicksLeft--;
@@ -63,28 +82,113 @@ public class AutoEatLogic {
 		if (eatingTicksLeft > 0) {
 			eatingTicksLeft--;
 			if (eatingTicksLeft == 0) {
+				SmartAutoMineConfig config = AutoConfig.getConfigHolder(SmartAutoMineConfig.class).getConfig();
 				finishEating(client, player);
 				settleTicksLeft = config.waitAfterEatEnabled ? WAIT_AFTER_EAT_TICKS : 1;
 			}
 			return;
 		}
 
-		if (!config.autoEatEnabled || config.autoEatSlot <= 0) {
-			return;
-		}
-		if (player.getFoodData().getFoodLevel() >= config.autoEatHungerThreshold) {
+		SmartAutoMineConfig config = AutoConfig.getConfigHolder(SmartAutoMineConfig.class).getConfig();
+		int foodLevel = player.getFoodData().getFoodLevel();
+
+		if (forceFullHunger) {
+			eatOnceLatched = false; // stale normal-mode state - let it re-arm cleanly once this ends
+			eatingSessionActive = false;
+			if (foodLevel >= 20) {
+				return;
+			}
+			int slotIndex = findFoodSlot(player, config);
+			if (slotIndex >= 0) {
+				beginBite(client, player, slotIndex);
+			}
 			return;
 		}
 
+		if (!config.autoEatEnabled) {
+			eatOnceLatched = false;
+			eatingSessionActive = false;
+			return;
+		}
+
+		if (config.autoEatAmountMode == SmartAutoMineConfig.AutoEatAmountMode.EAT_ONCE) {
+			if (foodLevel >= config.autoEatHungerThreshold) {
+				eatOnceLatched = false;
+				return;
+			}
+			if (eatOnceLatched) {
+				return;
+			}
+			int slotIndex = findFoodSlot(player, config);
+			if (slotIndex < 0) {
+				return;
+			}
+			eatOnceLatched = true;
+			beginBite(client, player, slotIndex);
+			return;
+		}
+
+		// DONT_OVEREAT / FILL_HUNGER: once triggered, keep going past the threshold until the
+		// mode's own stop condition is met, rather than stopping the instant one bite crosses it.
+		if (!eatingSessionActive) {
+			if (foodLevel >= config.autoEatHungerThreshold) {
+				return;
+			}
+			eatingSessionActive = true;
+		}
+		int slotIndex = findFoodSlot(player, config);
+		if (slotIndex < 0) {
+			eatingSessionActive = false; // nothing left to eat - give up this session
+			return;
+		}
+		if (config.autoEatAmountMode == SmartAutoMineConfig.AutoEatAmountMode.FILL_HUNGER) {
+			if (foodLevel >= 20) {
+				eatingSessionActive = false;
+				return;
+			}
+		} else { // DONT_OVEREAT
+			ItemStack candidate = player.getInventory().getItem(slotIndex);
+			var food = candidate.get(DataComponents.FOOD);
+			int nutrition = food != null ? food.nutrition() : 0;
+			if (nutrition <= 0 || foodLevel + nutrition > 20) {
+				eatingSessionActive = false; // next bite would waste nutrition past the cap - stop here
+				return;
+			}
+		}
+		beginBite(client, player, slotIndex);
+	}
+
+	public static boolean isEating() {
+		return eatingTicksLeft > 0 || settleTicksLeft > 0;
+	}
+
+	// Searches either the single configured slot, or the whole hotbar when autoEatSearchAnySlot
+	// is on, for the first item that's actually food and not banned by the safety preset. Only
+	// the hotbar (not the main inventory) is searched - eating something requires holding it,
+	// and moving items out of storage into the hotbar first would need extra inventory-click
+	// packets this mod doesn't otherwise touch.
+	private static int findFoodSlot(Player player, SmartAutoMineConfig config) {
+		if (config.autoEatSearchAnySlot) {
+			for (int slot = 0; slot < 9; slot++) {
+				if (isEligibleFood(player.getInventory().getItem(slot), config.foodSafetyPreset)) {
+					return slot;
+				}
+			}
+			return -1;
+		}
+		if (config.autoEatSlot <= 0) {
+			return -1;
+		}
 		int slotIndex = config.autoEatSlot - 1;
-		ItemStack foodStack = player.getInventory().getItem(slotIndex);
-		if (foodStack.isEmpty() || foodStack.get(DataComponents.FOOD) == null) {
-			return;
-		}
-		if (isBanned(foodStack, config.foodSafetyPreset)) {
-			return;
-		}
+		return isEligibleFood(player.getInventory().getItem(slotIndex), config.foodSafetyPreset) ? slotIndex : -1;
+	}
 
+	private static boolean isEligibleFood(ItemStack stack, SmartAutoMineConfig.FoodSafetyPreset preset) {
+		return !stack.isEmpty() && stack.get(DataComponents.FOOD) != null && !isBanned(stack, preset);
+	}
+
+	private static void beginBite(Minecraft client, Player player, int slotIndex) {
+		ItemStack foodStack = player.getInventory().getItem(slotIndex);
 		previousSlot = player.getInventory().getSelectedSlot();
 		player.getInventory().setSelectedSlot(slotIndex); // useItem() below syncs this to the server itself
 		client.gameMode.useItem(player, InteractionHand.MAIN_HAND);
@@ -97,10 +201,6 @@ public class AutoEatLogic {
 		// and some items override it outright (honey bottle is 40). Read the real
 		// per-item duration instead of assuming the default.
 		eatingTicksLeft = foodStack.getUseDuration(player);
-	}
-
-	public static boolean isEating() {
-		return eatingTicksLeft > 0 || settleTicksLeft > 0;
 	}
 
 	private static void finishEating(Minecraft client, Player player) {

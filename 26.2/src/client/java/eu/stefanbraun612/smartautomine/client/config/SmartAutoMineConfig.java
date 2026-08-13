@@ -22,10 +22,22 @@ public class SmartAutoMineConfig implements ConfigData {
 	public int hungerSafetyStopThreshold = 6; // hunger points, 0-20 scale
 
 	@ConfigEntry.Gui.Tooltip
+	public boolean ignoreHungerSafetyWhileRegenerating = false;
+
+	@ConfigEntry.Gui.Tooltip
 	public boolean healthSafetyStopEnabled = true;
 
 	@ConfigEntry.Gui.Tooltip
 	public float healthSafetyStopThreshold = 6; // health points, 0-20 scale (each heart = 2 points)
+
+	@ConfigEntry.Gui.Tooltip
+	public boolean eatToRegenerateHealth = false;
+
+	@ConfigEntry.Gui.Tooltip
+	public boolean ignoreHealthSafetyWhileRegenerating = false;
+
+	@ConfigEntry.Gui.Tooltip
+	public boolean paranoiaSwitchEnabled = false;
 
 	// --- Timing ---
 
@@ -131,10 +143,29 @@ public class SmartAutoMineConfig implements ConfigData {
 	public boolean autoEatEnabled = true;
 
 	@ConfigEntry.Gui.Tooltip
-	public int autoEatSlot = 0; // 0 = disabled, 1-9 hotbar slot
+	public boolean autoEatSearchAnySlot = false;
+
+	@ConfigEntry.Gui.Tooltip
+	public int autoEatSlot = 0; // 0 = disabled, 1-9 hotbar slot - only used when autoEatSearchAnySlot is off
 
 	@ConfigEntry.Gui.Tooltip
 	public int autoEatHungerThreshold = 20; // hunger points, 0-20 (matches the vanilla hunger bar: 20 = full, each drumstick icon = 2 points)
+
+	public enum AutoEatAmountMode {
+		// Eats exactly one bite per dip below the threshold, then waits for hunger to rise
+		// back above it before it's willing to eat again - even if one bite wasn't enough.
+		EAT_ONCE,
+		// Keeps eating bite after bite, but skips/stops the moment a bite's nutrition
+		// would push hunger past the 20-point cap, so it never wastes food.
+		DONT_OVEREAT,
+		// Keeps eating bite after bite until hunger is fully at 20, no matter how much of
+		// a bite's nutrition would go to waste.
+		FILL_HUNGER
+	}
+
+	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+	public AutoEatAmountMode autoEatAmountMode = AutoEatAmountMode.EAT_ONCE;
 
 	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)

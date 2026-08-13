@@ -5,10 +5,11 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **A0.4.1** (alpha), **MC 26.2 only** (1.20.4 support
+Current build: **A0.4.3** (alpha), **MC 26.2 only** (1.20.4 support
 was dropped as of A0.4). Grab a built jar from the
 [Releases](../../releases) page, or build from source with
-`./gradlew build` inside `26.2/`.
+`./gradlew build` inside `26.2/`. See [docs/GUIDE.md](docs/GUIDE.md) for
+a full walkthrough of every setting.
 
 ## Install
 
@@ -30,8 +31,17 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   through screens, but the attack indicator flickers, like Toro's Auto Mine).
 - Stop conditions: min durability (absolute/%), hunger safety stop, health
   safety stop, max duration.
-- "Use more tools": rotates to another hotbar item matching a keyword when
-  the current tool's durability guard trips.
+- Health safety stop can either hard-disable (default) or, with **Eat food
+  to regenerate health** on, pause everything (including all timers),
+  force-feed until hunger is full, and wait for health to climb 2 hearts
+  above the threshold before resuming - only giving up after 45 seconds.
+  Both hunger and health safety can also be set to ignore themselves
+  entirely while you have Regeneration (e.g. near a beacon); a **Paranoia
+  switch** overrides that specifically for the eat-to-recover path, so
+  hunger never goes untended even while regenerating.
+- "Use more tools": rotates to another hotbar item when the current tool's
+  durability guard trips - by keyword, by tool category (any material), or
+  requiring an exact item match.
 - Place-mine mode: right-click tries main-hand then offhand (so a main-hand
   shovel tills existing dirt and the offhand places a new block when there's
   nothing to till) alongside held left-click to mine - a faithful stand-in
@@ -41,7 +51,10 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   a screen is open it pauses by default (**Vanilla**); an experimental
   **Advanced** mode keeps it going through the screen but may not place/till
   perfectly reliably then.
-- Auto-eat, identical to Smart Auto Attack.
+- Auto-eat from a configured hotbar slot or, with "Search any hotbar
+  slot" on, the first eligible food found anywhere in the hotbar - with a
+  choice of how much to eat per trigger: one bite, as much as won't waste
+  nutrition past a full bar, or straight to full regardless of waste.
 - **Presets**: named bundles of duration/durability/tool-rotation/auto-eat
   settings, managed via client-side commands
   (`/smartautomine preset list|apply|save|delete`). Ships with

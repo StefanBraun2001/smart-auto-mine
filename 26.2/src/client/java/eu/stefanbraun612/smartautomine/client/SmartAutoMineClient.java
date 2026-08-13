@@ -84,7 +84,7 @@ public class SmartAutoMineClient implements ClientModInitializer {
 				return;
 			}
 			if (enabled) {
-				AutoEatLogic.tick(client);
+				AutoEatLogic.tick(client, AutoMineLogic.isCriticalHealthPauseActive());
 				// Don't mine while mid-chew: mining actions would otherwise interrupt
 				// the vanilla eat-use action the same way attacking does. The held mouse
 				// buttons have to be let go for the same reason - auto-eat drives the use
@@ -133,6 +133,7 @@ public class SmartAutoMineClient implements ClientModInitializer {
 	public static void setEnabled(boolean value, Minecraft client) {
 		enabled = value;
 		AutoMineLogic.reset();
+		AutoEatLogic.reset();
 		if (!value) {
 			// Let go of the mouse buttons we were holding, otherwise they'd stay stuck
 			// down (exactly the F3+T glitch) and keep mining/placing after switching off.

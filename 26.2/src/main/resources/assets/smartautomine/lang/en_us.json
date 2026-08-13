@@ -6,71 +6,89 @@
 	"text.autoconfig.smartautomine.title": "Smart Auto Mine",
 
 	"text.autoconfig.smartautomine.option.minDurability": "Min durability (0 = disabled)",
-	"text.autoconfig.smartautomine.option.minDurability.@Tooltip": "Stop (or switch tools, if Use more tools is on) before the current tool's remaining durability drops below this absolute value.",
+	"text.autoconfig.smartautomine.option.minDurability.@Tooltip": "Stop (or switch tools) before durability drops below this absolute value.",
 
 	"text.autoconfig.smartautomine.option.minDurabilityPercent": "Min durability % (0 = disabled)",
-	"text.autoconfig.smartautomine.option.minDurabilityPercent.@Tooltip": "Stop (or switch tools, if Use more tools is on) before the current tool's remaining durability drops below this percentage.",
+	"text.autoconfig.smartautomine.option.minDurabilityPercent.@Tooltip": "Stop (or switch tools) before durability drops below this percentage.",
 
 	"text.autoconfig.smartautomine.option.hungerSafetyStopEnabled": "Hunger safety stop",
-	"text.autoconfig.smartautomine.option.hungerSafetyStopEnabled.@Tooltip": "On (default): auto-disable if your hunger drops below the threshold below, independent of the auto-eat feature. A safety net for hardcore/no-food-on-hand situations.",
+	"text.autoconfig.smartautomine.option.hungerSafetyStopEnabled.@Tooltip": "On (default): auto-disable if hunger drops below the threshold below.",
 
 	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold": "Hunger safety threshold",
-	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold.@Tooltip": "Stop when hunger drops below this value, on the vanilla 0-20 hunger scale (20 = full, each drumstick icon = 2 points). Only used while Hunger safety stop above is on.",
+	"text.autoconfig.smartautomine.option.hungerSafetyStopThreshold.@Tooltip": "0-20 hunger scale (20 = full bar).",
+
+	"text.autoconfig.smartautomine.option.ignoreHungerSafetyWhileRegenerating": "Ignore hunger safety while regenerating",
+	"text.autoconfig.smartautomine.option.ignoreHungerSafetyWhileRegenerating.@Tooltip": "On: skip the hunger safety stop entirely while you have Regeneration (e.g. near a beacon).",
 
 	"text.autoconfig.smartautomine.option.healthSafetyStopEnabled": "Health safety stop",
-	"text.autoconfig.smartautomine.option.healthSafetyStopEnabled.@Tooltip": "On (default): auto-disable if your health drops below the threshold below, on the vanilla 0-20 health scale (20 = full, each heart icon = 2 points). A safety net independent of everything else.",
+	"text.autoconfig.smartautomine.option.healthSafetyStopEnabled.@Tooltip": "On (default): react once health drops below the threshold below - stop, or pause-and-eat if the option below is on.",
 
 	"text.autoconfig.smartautomine.option.healthSafetyStopThreshold": "Health safety threshold",
-	"text.autoconfig.smartautomine.option.healthSafetyStopThreshold.@Tooltip": "Stop when health drops below this value, on the vanilla 0-20 health scale (20 = full, each heart icon = 2 points). Only used while Health safety stop above is on.",
+	"text.autoconfig.smartautomine.option.healthSafetyStopThreshold.@Tooltip": "0-20 health scale (each heart = 2 points).",
+
+	"text.autoconfig.smartautomine.option.eatToRegenerateHealth": "Eat food to regenerate health",
+	"text.autoconfig.smartautomine.option.eatToRegenerateHealth.@Tooltip": "Off (default): the health safety stop above just auto-disables. On: instead, pause (incl. all timers) and force-feed from Auto-eat until hunger is full, then wait for health to climb 2 hearts above the threshold before resuming. Gives up after 45 seconds. Needs an auto-eat food source configured.",
+
+	"text.autoconfig.smartautomine.option.ignoreHealthSafetyWhileRegenerating": "Ignore health safety while regenerating",
+	"text.autoconfig.smartautomine.option.ignoreHealthSafetyWhileRegenerating.@Tooltip": "On: skip the health safety stop/pause entirely while you have Regeneration (e.g. near a beacon).",
+
+	"text.autoconfig.smartautomine.option.paranoiaSwitchEnabled": "Paranoia switch",
+	"text.autoconfig.smartautomine.option.paranoiaSwitchEnabled.@Tooltip": "Off (default). On: don't fully trust Regeneration - still pause-and-eat when triggered even while regenerating, so hunger never goes untended. Needs Eat to regenerate health and Auto-eat both on.",
 
 	"text.autoconfig.smartautomine.option.maxDuration": "Max duration (empty = unlimited)",
-	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "Free text, e.g. '90m', '1.5h', '5400s', '1h30m', or a bare number of seconds. Auto-disable after this long, even if durability isn't exhausted.",
+	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "e.g. '90m', '1.5h', '1h30m'. Auto-disable after this long.",
 
 	"text.autoconfig.smartautomine.option.useMoreTools": "Use more tools",
-	"text.autoconfig.smartautomine.option.useMoreTools.@Tooltip": "Off (default): stop as soon as the current tool's durability guard triggers. On: instead, look for another matching tool (see Tool keyword below) elsewhere in your hotbar and switch to it, only stopping once none are left with enough durability.",
+	"text.autoconfig.smartautomine.option.useMoreTools.@Tooltip": "On: switch to another matching tool in the hotbar instead of stopping when durability runs low.",
 
 	"text.autoconfig.smartautomine.option.toolRotationMode": "Tool rotation mode",
-	"text.autoconfig.smartautomine.option.toolRotationMode.@Tooltip": "Used when Use more tools is on - how a hotbar item is judged as a valid replacement. KEYWORD: substring match against the item ID (see Tool keyword below). SAME_TYPE: any tool of the same class as the one that just ran low (e.g. any pickaxe replaces any pickaxe), regardless of material. EXACT_MATCH: only the exact same item (e.g. only another diamond pickaxe replaces a diamond pickaxe).",
+	"text.autoconfig.smartautomine.option.toolRotationMode.@Tooltip": "How replacements are picked. KEYWORD: item ID contains the keyword below. SAME_TYPE: same tool category, any material. EXACT_MATCH: identical item only.",
 
 	"text.autoconfig.smartautomine.option.toolKeyword": "Tool keyword",
-	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "Only used when Tool rotation mode is KEYWORD. Substring match (case-insensitive) against the tool's item ID, e.g. 'pickaxe' matches minecraft:diamond_pickaxe, minecraft:netherite_pickaxe, etc.",
+	"text.autoconfig.smartautomine.option.toolKeyword.@Tooltip": "KEYWORD mode only. e.g. 'pickaxe' matches any *_pickaxe.",
 
 	"text.autoconfig.smartautomine.option.regularMineMode": "Regular mining drive",
-	"text.autoconfig.smartautomine.option.regularMineMode.@Tooltip": "How plain mining is driven. CONTINUOUS (default): holds the mine button while playing (no attack-indicator flicker) and only drives the game directly while a screen is open, so it keeps mining through inventory/chat. VANILLA_INPUT: only ever holds the mine button - no flicker, but pauses while a screen is open. LEGACY: always drives the game directly (the pre-A0.4.1 behaviour) - keeps mining through screens, but the attack indicator flickers constantly, like Toro's Auto Mine.",
+	"text.autoconfig.smartautomine.option.regularMineMode.@Tooltip": "CONTINUOUS (default): holds the mine button, drives directly only while a screen is open. VANILLA_INPUT: only ever holds the button, pauses on screens. LEGACY: always drives directly (attack indicator flickers).",
 
 	"text.autoconfig.smartautomine.option.placeMineMenuMode": "Place-mine while a screen is open",
-	"text.autoconfig.smartautomine.option.placeMineMenuMode.@Tooltip": "What place-mine does while inventory/chat is open. VANILLA (default): pauses, resumes when the screen closes - simple and reliable. ADVANCED (experimental): keeps placing and mining through an open screen by driving the game directly. It may not place/till perfectly reliably while the screen is open.",
+	"text.autoconfig.smartautomine.option.placeMineMenuMode.@Tooltip": "VANILLA (default): pauses while a screen is open. ADVANCED (experimental): keeps placing/mining through the screen.",
 
 	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand": "Finish last block when offhand empties",
-	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand.@Tooltip": "Place-mine only. Off (default): stop the instant the offhand runs out, which can leave the block you just placed sitting there unmined. On: keep going for another 0.75 seconds so that last block still gets finished. Only applies to running out of offhand items - durability, hunger, health and time limits always stop immediately.",
+	"text.autoconfig.smartautomine.option.finishLastBlockOnEmptyOffhand.@Tooltip": "Place-mine only. On: keep going 0.75s longer so the just-placed block still gets mined.",
 
 	"text.autoconfig.smartautomine.option.pauseTimerWhileMiningPaused": "Pause timer while mining is paused",
-	"text.autoconfig.smartautomine.option.pauseTimerWhileMiningPaused.@Tooltip": "Affects the Max duration timer. Off (default): the timer always counts down, even while the mod is paused with a screen open (in a mode that pauses, i.e. regular Vanilla input or place-mine Vanilla). On: the timer freezes during that pause, so the limit measures actual working time instead of idle menu time. Time spent auto-eating is always excluded regardless.",
+	"text.autoconfig.smartautomine.option.pauseTimerWhileMiningPaused.@Tooltip": "On: the max-duration timer freezes while paused by an open screen, instead of always counting down.",
 
 	"text.autoconfig.smartautomine.option.feedbackMode": "Feedback message",
-	"text.autoconfig.smartautomine.option.feedbackMode.@Tooltip": "How to notify you when auto-mine toggles or auto-stops.",
+	"text.autoconfig.smartautomine.option.feedbackMode.@Tooltip": "How to notify you of toggles/auto-stops.",
 
 	"text.autoconfig.smartautomine.option.waitAfterEatEnabled": "Wait after eat",
-	"text.autoconfig.smartautomine.option.waitAfterEatEnabled.@Tooltip": "On (default): after finishing a bite, wait an extra 0.5 seconds before resuming mining, as a safety buffer. Off: resume mining almost immediately after eating finishes.",
+	"text.autoconfig.smartautomine.option.waitAfterEatEnabled.@Tooltip": "On (default): wait 0.5s after a bite before resuming mining.",
 
 	"text.autoconfig.smartautomine.option.playSoundOnAutoStop": "Play sound on auto-stop",
-	"text.autoconfig.smartautomine.option.playSoundOnAutoStop.@Tooltip": "On (default): play the sound below whenever the mod stops itself (hunger safety, durability/no usable tool, time limit, offhand empty). Does not play when you manually toggle it off yourself.",
+	"text.autoconfig.smartautomine.option.playSoundOnAutoStop.@Tooltip": "On (default): play a sound whenever the mod auto-stops itself.",
 
 	"text.autoconfig.smartautomine.option.autoStopSound": "Auto-stop sound",
-	"text.autoconfig.smartautomine.option.autoStopSound.@Tooltip": "Full sound event ID to play on auto-stop, e.g. minecraft:block.bell.use, minecraft:entity.experience_orb.pickup, minecraft:entity.villager.no. Invalid/unknown IDs simply play nothing.",
+	"text.autoconfig.smartautomine.option.autoStopSound.@Tooltip": "Sound event ID, e.g. minecraft:block.bell.use.",
 
 	"text.autoconfig.smartautomine.option.resumeAfterManualReconnect": "Resume after manual reconnect",
-	"text.autoconfig.smartautomine.option.resumeAfterManualReconnect.@Tooltip": "Off (default): if you reconnect yourself (not via the separate Smart Auto Reconnect mod), the mod turns itself off rather than silently resuming. On: it stays on and resumes after a short settle buffer, same as a scripted reconnect always does regardless of this setting.",
+	"text.autoconfig.smartautomine.option.resumeAfterManualReconnect.@Tooltip": "Off (default): a manual reconnect turns the mod off. On: it resumes automatically.",
 
 	"text.autoconfig.smartautomine.option.autoEatEnabled": "Auto-eat enabled",
-	"text.autoconfig.smartautomine.option.autoEatEnabled.@Tooltip": "On (default): auto-eat is active whenever the hotbar slot below is set. Off: auto-eat never triggers, regardless of the hotbar slot - a quick way to disable eating without losing your configured slot/threshold.",
+	"text.autoconfig.smartautomine.option.autoEatEnabled.@Tooltip": "On (default): auto-eat is active. Off: never eats automatically.",
+
+	"text.autoconfig.smartautomine.option.autoEatSearchAnySlot": "Search any hotbar slot",
+	"text.autoconfig.smartautomine.option.autoEatSearchAnySlot.@Tooltip": "Off (default): only eat from the slot below. On: eat the first eligible food anywhere in the hotbar.",
 
 	"text.autoconfig.smartautomine.option.autoEatSlot": "Auto-eat hotbar slot (0 = off)",
-	"text.autoconfig.smartautomine.option.autoEatSlot.@Tooltip": "Hotbar slot (1-9) holding your food item. 0 disables auto-eat.",
+	"text.autoconfig.smartautomine.option.autoEatSlot.@Tooltip": "1-9. Ignored when Search any hotbar slot is on.",
 
 	"text.autoconfig.smartautomine.option.autoEatHungerThreshold": "Auto-eat hunger threshold",
-	"text.autoconfig.smartautomine.option.autoEatHungerThreshold.@Tooltip": "Eat a bite when your hunger drops below this value, on the vanilla 0-20 hunger scale (same as the hunger bar: 20 = full, each drumstick icon = 2 points, so 10 = half the bar).",
+	"text.autoconfig.smartautomine.option.autoEatHungerThreshold.@Tooltip": "Start eating once hunger drops below this (0-20).",
+
+	"text.autoconfig.smartautomine.option.autoEatAmountMode": "Auto-eat amount",
+	"text.autoconfig.smartautomine.option.autoEatAmountMode.@Tooltip": "EAT_ONCE (default): one bite per dip below the threshold. DONT_OVEREAT: keep eating without wasting nutrition past 20. FILL_HUNGER: keep eating to a full bar, regardless of waste.",
 
 	"text.autoconfig.smartautomine.option.foodSafetyPreset": "Auto-eat food safety",
-	"text.autoconfig.smartautomine.option.foodSafetyPreset.@Tooltip": "LIGHT (default): blocks only enchanted golden apple and pufferfish. FOOD_INSPECTOR: also blocks rotten flesh, spider eye, raw chicken, and poisonous potato. RAT: no extra blocks. Cake and chorus fruit are always blocked no matter the preset."
+	"text.autoconfig.smartautomine.option.foodSafetyPreset.@Tooltip": "LIGHT (default): blocks golden apple/pufferfish. FOOD_INSPECTOR: also rotten flesh/spider eye/raw chicken/poisonous potato. RAT: no extra blocks."
 }

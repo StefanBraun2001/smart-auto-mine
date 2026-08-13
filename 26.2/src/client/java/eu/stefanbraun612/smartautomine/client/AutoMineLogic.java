@@ -14,6 +14,7 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -58,12 +59,30 @@ public class AutoMineLogic {
 	// candidates against for those two modes.
 	private static ItemStack lastKnownMainHandItem = ItemStack.EMPTY;
 
+	// Health-guard pause (only when Eat food to regenerate health is on): freezes everything
+	// (including timers) once health drops below the configured threshold, force-feeds via
+	// AutoEatLogic (see isCriticalHealthPauseActive()) until hunger is full and health has
+	// climbed back to threshold+4, then resumes normally. Gives up and stops the mod if that
+	// recovery doesn't happen within the timeout below.
+	private static boolean criticalHealthPauseActive = false;
+	private static int criticalHealthPauseTicks = 0;
+	private static final float CRITICAL_HEALTH_RESUME_MARGIN = 4.0f; // 2 hearts above the threshold
+	private static final int CRITICAL_HEALTH_PAUSE_TIMEOUT_TICKS = 900; // 45 seconds
+
 	public static void reset() {
 		elapsedActiveTicks = 0;
 		offhandEmptyGraceTicks = -1;
 		offhandHadItems = false;
 		lastKnownMainHandItem = ItemStack.EMPTY;
+		criticalHealthPauseActive = false;
+		criticalHealthPauseTicks = 0;
 		resetDirectPlaceMineState();
+	}
+
+	// Read by SmartAutoMineClient to tell AutoEatLogic to force-feed past its normal
+	// threshold while a critical-health pause is in progress.
+	public static boolean isCriticalHealthPauseActive() {
+		return criticalHealthPauseActive;
 	}
 
 	private static void resetDirectPlaceMineState() {
@@ -75,6 +94,10 @@ public class AutoMineLogic {
 		SmartAutoMineConfig config = AutoConfig.getConfigHolder(SmartAutoMineConfig.class).getConfig();
 		LocalPlayer player = client.player;
 		if (player == null || client.level == null || client.gameMode == null) {
+			return;
+		}
+
+		if (handleHealthGuard(client, player, config)) {
 			return;
 		}
 
@@ -92,11 +115,6 @@ public class AutoMineLogic {
 
 		if (!passesHungerSafety(player, config)) {
 			stop(client, config, "Smart Auto Mine: stopped (hunger too low)");
-			return;
-		}
-
-		if (!passesHealthSafety(player, config)) {
-			stop(client, config, "Smart Auto Mine: stopped (health too low)");
 			return;
 		}
 
@@ -312,14 +330,71 @@ public class AutoMineLogic {
 		if (!config.hungerSafetyStopEnabled) {
 			return true;
 		}
+		if (config.ignoreHungerSafetyWhileRegenerating && player.hasEffect(MobEffects.REGENERATION)) {
+			return true;
+		}
 		return player.getFoodData().getFoodLevel() >= config.hungerSafetyStopThreshold;
 	}
 
-	private static boolean passesHealthSafety(Player player, SmartAutoMineConfig config) {
+	// Returns true if tick() should return immediately (either a hard stop just fired, or
+	// we're mid-recovery-pause). Merges the old "hard stop on low health" and "critical-health
+	// panic pause" into a single threshold: Eat food to regenerate health decides which of the
+	// two happens once health drops below healthSafetyStopThreshold.
+	private static boolean handleHealthGuard(Minecraft client, Player player, SmartAutoMineConfig config) {
+		if (criticalHealthPauseActive && (!config.healthSafetyStopEnabled || !config.eatToRegenerateHealth)) {
+			criticalHealthPauseActive = false; // guard/eat-to-recover turned off mid-pause - resume immediately
+		}
 		if (!config.healthSafetyStopEnabled) {
+			return false;
+		}
+		if (isRegenerationBypassActive(player, config)) {
+			if (criticalHealthPauseActive) {
+				criticalHealthPauseActive = false; // regen kicked in mid-pause - trust it, resume
+			}
+			return false;
+		}
+
+		if (!criticalHealthPauseActive && player.getHealth() < config.healthSafetyStopThreshold) {
+			if (!config.eatToRegenerateHealth) {
+				stop(client, config, "Smart Auto Mine: stopped (health too low)");
+				return true;
+			}
+			criticalHealthPauseActive = true;
+			criticalHealthPauseTicks = 0;
+			FeedbackUtil.send(client, config, "Smart Auto Mine: paused (health critical - recovering)");
+		}
+		if (!criticalHealthPauseActive) {
+			return false;
+		}
+
+		// Clamped to max health: a high threshold (e.g. 18) plus the margin must never target
+		// above what the player can actually reach, or the pause would never resolve on its own.
+		float resumeThreshold = Math.min(config.healthSafetyStopThreshold + CRITICAL_HEALTH_RESUME_MARGIN, player.getMaxHealth());
+		if (player.getHealth() >= resumeThreshold) {
+			criticalHealthPauseActive = false;
+			FeedbackUtil.send(client, config, "Smart Auto Mine: resuming (health recovered)");
+			return false;
+		}
+		criticalHealthPauseTicks++;
+		if (criticalHealthPauseTicks >= CRITICAL_HEALTH_PAUSE_TIMEOUT_TICKS) {
+			stop(client, config, "Smart Auto Mine: stopped (health failed to recover in time)");
 			return true;
 		}
-		return player.getHealth() >= config.healthSafetyStopThreshold;
+		releaseInputs(client); // stop actively mining/placing while paused
+		return true; // stays paused - AutoEatLogic force-feeds independently, see isCriticalHealthPauseActive()
+	}
+
+	// The Paranoia switch overrides the regen bypass specifically for the eat-to-recover path:
+	// it never trusts Regeneration alone to keep hunger topped up, only ever relevant while
+	// auto-eat can actually act on it.
+	private static boolean isRegenerationBypassActive(Player player, SmartAutoMineConfig config) {
+		if (!config.ignoreHealthSafetyWhileRegenerating || !player.hasEffect(MobEffects.REGENERATION)) {
+			return false;
+		}
+		if (config.paranoiaSwitchEnabled && config.eatToRegenerateHealth && config.autoEatEnabled) {
+			return false;
+		}
+		return true;
 	}
 
 	// Returns true if the main hand currently holds a tool with enough durability to
