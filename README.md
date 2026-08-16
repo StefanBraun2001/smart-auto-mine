@@ -11,6 +11,11 @@ was dropped as of A0.4). Grab a built jar from the
 `./gradlew build` inside `26.2/`. See [docs/GUIDE.md](docs/GUIDE.md) for
 a full walkthrough of every setting.
 
+**GitHub-only, not on Modrinth.** A subsequent, silent change to
+Modrinth's rules disqualifies this mod from that platform, so GitHub
+Releases is the only distribution channel going forward. The Modrinth
+listing has been removed.
+
 ## Install
 
 Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
