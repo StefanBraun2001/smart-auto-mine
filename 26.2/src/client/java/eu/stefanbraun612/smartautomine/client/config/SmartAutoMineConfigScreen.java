@@ -1,0 +1,295 @@
+package eu.stefanbraun612.smartautomine.client.config;
+
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.ConfigHolder;
+import me.shedaniel.clothconfig2.api.ConfigBuilder;
+import me.shedaniel.clothconfig2.api.ConfigCategory;
+import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import me.shedaniel.clothconfig2.api.Requirement;
+import me.shedaniel.clothconfig2.gui.entries.BooleanListEntry;
+import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+
+/**
+ * Hand-built (not annotation-generated) Cloth Config screen, so that fields can be
+ * grouped into tabs and dependent fields can be hidden via Requirement - neither is
+ * possible with AutoConfig's reflection-based screen generation.
+ */
+public class SmartAutoMineConfigScreen {
+
+	private static final String PREFIX = "text.autoconfig.smartautomine.";
+
+	private static Component option(String field) {
+		return Component.translatable(PREFIX + "option." + field);
+	}
+
+	private static Component tooltip(String field) {
+		return Component.translatable(PREFIX + "option." + field + ".@Tooltip");
+	}
+
+	private static Component category(String key) {
+		return Component.translatable(PREFIX + "category." + key);
+	}
+
+	public static Screen build(Screen parent) {
+		ConfigHolder<SmartAutoMineConfig> holder = AutoConfig.getConfigHolder(SmartAutoMineConfig.class);
+		SmartAutoMineConfig config = holder.getConfig();
+		SmartAutoMineConfig defaults = new SmartAutoMineConfig();
+
+		ConfigBuilder builder = ConfigBuilder.create()
+				.setParentScreen(parent)
+				.setTitle(Component.translatable(PREFIX + "title"))
+				.setSavingRunnable(holder::save);
+		ConfigEntryBuilder entryBuilder = builder.entryBuilder();
+
+		// --- Mining tab ---
+
+		ConfigCategory mining = builder.getOrCreateCategory(category("mining"));
+
+		mining.addEntry(entryBuilder
+				.startEnumSelector(option("regularMineMode"), SmartAutoMineConfig.RegularMineMode.class, config.regularMineMode)
+				.setDefaultValue(defaults.regularMineMode)
+				.setTooltip(tooltip("regularMineMode"))
+				.setSaveConsumer(v -> config.regularMineMode = v)
+				.build());
+
+		mining.addEntry(entryBuilder
+				.startEnumSelector(option("placeMineMenuMode"), SmartAutoMineConfig.PlaceMineMenuMode.class, config.placeMineMenuMode)
+				.setDefaultValue(defaults.placeMineMenuMode)
+				.setTooltip(tooltip("placeMineMenuMode"))
+				.setSaveConsumer(v -> config.placeMineMenuMode = v)
+				.build());
+
+		mining.addEntry(entryBuilder
+				.startBooleanToggle(option("finishLastBlockOnEmptyOffhand"), config.finishLastBlockOnEmptyOffhand)
+				.setDefaultValue(defaults.finishLastBlockOnEmptyOffhand)
+				.setTooltip(tooltip("finishLastBlockOnEmptyOffhand"))
+				.setSaveConsumer(v -> config.finishLastBlockOnEmptyOffhand = v)
+				.build());
+
+		mining.addEntry(entryBuilder
+				.startBooleanToggle(option("pauseTimerWhileMiningPaused"), config.pauseTimerWhileMiningPaused)
+				.setDefaultValue(defaults.pauseTimerWhileMiningPaused)
+				.setTooltip(tooltip("pauseTimerWhileMiningPaused"))
+				.setSaveConsumer(v -> config.pauseTimerWhileMiningPaused = v)
+				.build());
+
+		mining.addEntry(entryBuilder
+				.startStrField(option("maxDuration"), config.maxDuration)
+				.setDefaultValue(defaults.maxDuration)
+				.setTooltip(tooltip("maxDuration"))
+				.setSaveConsumer(v -> config.maxDuration = v)
+				.build());
+
+		// --- Safety tab ---
+
+		ConfigCategory safety = builder.getOrCreateCategory(category("safety"));
+
+		safety.addEntry(entryBuilder
+				.startIntField(option("minDurability"), config.minDurability)
+				.setDefaultValue(defaults.minDurability)
+				.setTooltip(tooltip("minDurability"))
+				.setSaveConsumer(v -> config.minDurability = v)
+				.build());
+
+		safety.addEntry(entryBuilder
+				.startIntField(option("minDurabilityPercent"), config.minDurabilityPercent)
+				.setDefaultValue(defaults.minDurabilityPercent)
+				.setTooltip(tooltip("minDurabilityPercent"))
+				.setSaveConsumer(v -> config.minDurabilityPercent = v)
+				.build());
+
+		BooleanListEntry useMoreTools = entryBuilder
+				.startBooleanToggle(option("useMoreTools"), config.useMoreTools)
+				.setDefaultValue(defaults.useMoreTools)
+				.setTooltip(tooltip("useMoreTools"))
+				.setSaveConsumer(v -> config.useMoreTools = v)
+				.build();
+		safety.addEntry(useMoreTools);
+
+		EnumListEntry<SmartAutoMineConfig.ToolRotationMode> toolRotationMode = entryBuilder
+				.startEnumSelector(option("toolRotationMode"), SmartAutoMineConfig.ToolRotationMode.class, config.toolRotationMode)
+				.setDefaultValue(defaults.toolRotationMode)
+				.setTooltip(tooltip("toolRotationMode"))
+				.setSaveConsumer(v -> config.toolRotationMode = v)
+				.setDisplayRequirement(Requirement.isTrue(useMoreTools))
+				.build();
+		safety.addEntry(toolRotationMode);
+
+		safety.addEntry(entryBuilder
+				.startStrField(option("toolKeyword"), config.toolKeyword)
+				.setDefaultValue(defaults.toolKeyword)
+				.setTooltip(tooltip("toolKeyword"))
+				.setSaveConsumer(v -> config.toolKeyword = v)
+				.setDisplayRequirement(Requirement.all(
+						Requirement.isTrue(useMoreTools),
+						Requirement.isValue(toolRotationMode, SmartAutoMineConfig.ToolRotationMode.KEYWORD)))
+				.build());
+
+		BooleanListEntry hungerSafetyStopEnabled = entryBuilder
+				.startBooleanToggle(option("hungerSafetyStopEnabled"), config.hungerSafetyStopEnabled)
+				.setDefaultValue(defaults.hungerSafetyStopEnabled)
+				.setTooltip(tooltip("hungerSafetyStopEnabled"))
+				.setSaveConsumer(v -> config.hungerSafetyStopEnabled = v)
+				.build();
+		safety.addEntry(hungerSafetyStopEnabled);
+
+		safety.addEntry(entryBuilder
+				.startIntField(option("hungerSafetyStopThreshold"), config.hungerSafetyStopThreshold)
+				.setDefaultValue(defaults.hungerSafetyStopThreshold)
+				.setTooltip(tooltip("hungerSafetyStopThreshold"))
+				.setSaveConsumer(v -> config.hungerSafetyStopThreshold = v)
+				.setDisplayRequirement(Requirement.isTrue(hungerSafetyStopEnabled))
+				.build());
+
+		safety.addEntry(entryBuilder
+				.startBooleanToggle(option("ignoreHungerSafetyWhileRegenerating"), config.ignoreHungerSafetyWhileRegenerating)
+				.setDefaultValue(defaults.ignoreHungerSafetyWhileRegenerating)
+				.setTooltip(tooltip("ignoreHungerSafetyWhileRegenerating"))
+				.setSaveConsumer(v -> config.ignoreHungerSafetyWhileRegenerating = v)
+				.setDisplayRequirement(Requirement.isTrue(hungerSafetyStopEnabled))
+				.build());
+
+		BooleanListEntry healthSafetyStopEnabled = entryBuilder
+				.startBooleanToggle(option("healthSafetyStopEnabled"), config.healthSafetyStopEnabled)
+				.setDefaultValue(defaults.healthSafetyStopEnabled)
+				.setTooltip(tooltip("healthSafetyStopEnabled"))
+				.setSaveConsumer(v -> config.healthSafetyStopEnabled = v)
+				.build();
+		safety.addEntry(healthSafetyStopEnabled);
+
+		safety.addEntry(entryBuilder
+				.startFloatField(option("healthSafetyStopThreshold"), config.healthSafetyStopThreshold)
+				.setDefaultValue(defaults.healthSafetyStopThreshold)
+				.setTooltip(tooltip("healthSafetyStopThreshold"))
+				.setSaveConsumer(v -> config.healthSafetyStopThreshold = v)
+				.setDisplayRequirement(Requirement.isTrue(healthSafetyStopEnabled))
+				.build());
+
+		BooleanListEntry eatToRegenerateHealth = entryBuilder
+				.startBooleanToggle(option("eatToRegenerateHealth"), config.eatToRegenerateHealth)
+				.setDefaultValue(defaults.eatToRegenerateHealth)
+				.setTooltip(tooltip("eatToRegenerateHealth"))
+				.setSaveConsumer(v -> config.eatToRegenerateHealth = v)
+				.setDisplayRequirement(Requirement.isTrue(healthSafetyStopEnabled))
+				.build();
+		safety.addEntry(eatToRegenerateHealth);
+
+		safety.addEntry(entryBuilder
+				.startBooleanToggle(option("ignoreHealthSafetyWhileRegenerating"), config.ignoreHealthSafetyWhileRegenerating)
+				.setDefaultValue(defaults.ignoreHealthSafetyWhileRegenerating)
+				.setTooltip(tooltip("ignoreHealthSafetyWhileRegenerating"))
+				.setSaveConsumer(v -> config.ignoreHealthSafetyWhileRegenerating = v)
+				.setDisplayRequirement(Requirement.isTrue(healthSafetyStopEnabled))
+				.build());
+
+		safety.addEntry(entryBuilder
+				.startBooleanToggle(option("paranoiaSwitchEnabled"), config.paranoiaSwitchEnabled)
+				.setDefaultValue(defaults.paranoiaSwitchEnabled)
+				.setTooltip(tooltip("paranoiaSwitchEnabled"))
+				.setSaveConsumer(v -> config.paranoiaSwitchEnabled = v)
+				.setDisplayRequirement(Requirement.all(
+						Requirement.isTrue(healthSafetyStopEnabled),
+						Requirement.isTrue(eatToRegenerateHealth)))
+				.build());
+
+		// --- General tab ---
+
+		ConfigCategory general = builder.getOrCreateCategory(category("general"));
+
+		general.addEntry(entryBuilder
+				.startEnumSelector(option("feedbackMode"), SmartAutoMineConfig.FeedbackMode.class, config.feedbackMode)
+				.setDefaultValue(defaults.feedbackMode)
+				.setTooltip(tooltip("feedbackMode"))
+				.setSaveConsumer(v -> config.feedbackMode = v)
+				.build());
+
+		general.addEntry(entryBuilder
+				.startBooleanToggle(option("waitAfterEatEnabled"), config.waitAfterEatEnabled)
+				.setDefaultValue(defaults.waitAfterEatEnabled)
+				.setTooltip(tooltip("waitAfterEatEnabled"))
+				.setSaveConsumer(v -> config.waitAfterEatEnabled = v)
+				.build());
+
+		BooleanListEntry playSoundOnAutoStop = entryBuilder
+				.startBooleanToggle(option("playSoundOnAutoStop"), config.playSoundOnAutoStop)
+				.setDefaultValue(defaults.playSoundOnAutoStop)
+				.setTooltip(tooltip("playSoundOnAutoStop"))
+				.setSaveConsumer(v -> config.playSoundOnAutoStop = v)
+				.build();
+		general.addEntry(playSoundOnAutoStop);
+
+		general.addEntry(entryBuilder
+				.startStrField(option("autoStopSound"), config.autoStopSound)
+				.setDefaultValue(defaults.autoStopSound)
+				.setTooltip(tooltip("autoStopSound"))
+				.setSaveConsumer(v -> config.autoStopSound = v)
+				.setDisplayRequirement(Requirement.isTrue(playSoundOnAutoStop))
+				.build());
+
+		general.addEntry(entryBuilder
+				.startBooleanToggle(option("resumeAfterManualReconnect"), config.resumeAfterManualReconnect)
+				.setDefaultValue(defaults.resumeAfterManualReconnect)
+				.setTooltip(tooltip("resumeAfterManualReconnect"))
+				.setSaveConsumer(v -> config.resumeAfterManualReconnect = v)
+				.build());
+
+		// --- Auto-eat tab ---
+
+		ConfigCategory autoEat = builder.getOrCreateCategory(category("autoeat"));
+
+		BooleanListEntry autoEatEnabled = entryBuilder
+				.startBooleanToggle(option("autoEatEnabled"), config.autoEatEnabled)
+				.setDefaultValue(defaults.autoEatEnabled)
+				.setTooltip(tooltip("autoEatEnabled"))
+				.setSaveConsumer(v -> config.autoEatEnabled = v)
+				.build();
+		autoEat.addEntry(autoEatEnabled);
+
+		BooleanListEntry autoEatSearchAnySlot = entryBuilder
+				.startBooleanToggle(option("autoEatSearchAnySlot"), config.autoEatSearchAnySlot)
+				.setDefaultValue(defaults.autoEatSearchAnySlot)
+				.setTooltip(tooltip("autoEatSearchAnySlot"))
+				.setSaveConsumer(v -> config.autoEatSearchAnySlot = v)
+				.setDisplayRequirement(Requirement.isTrue(autoEatEnabled))
+				.build();
+		autoEat.addEntry(autoEatSearchAnySlot);
+
+		autoEat.addEntry(entryBuilder
+				.startIntField(option("autoEatSlot"), config.autoEatSlot)
+				.setDefaultValue(defaults.autoEatSlot)
+				.setTooltip(tooltip("autoEatSlot"))
+				.setSaveConsumer(v -> config.autoEatSlot = v)
+				.setDisplayRequirement(Requirement.all(
+						Requirement.isTrue(autoEatEnabled),
+						Requirement.isFalse(autoEatSearchAnySlot)))
+				.build());
+
+		autoEat.addEntry(entryBuilder
+				.startIntField(option("autoEatHungerThreshold"), config.autoEatHungerThreshold)
+				.setDefaultValue(defaults.autoEatHungerThreshold)
+				.setTooltip(tooltip("autoEatHungerThreshold"))
+				.setSaveConsumer(v -> config.autoEatHungerThreshold = v)
+				.setDisplayRequirement(Requirement.isTrue(autoEatEnabled))
+				.build());
+
+		autoEat.addEntry(entryBuilder
+				.startEnumSelector(option("autoEatAmountMode"), SmartAutoMineConfig.AutoEatAmountMode.class, config.autoEatAmountMode)
+				.setDefaultValue(defaults.autoEatAmountMode)
+				.setTooltip(tooltip("autoEatAmountMode"))
+				.setSaveConsumer(v -> config.autoEatAmountMode = v)
+				.setDisplayRequirement(Requirement.isTrue(autoEatEnabled))
+				.build());
+
+		autoEat.addEntry(entryBuilder
+				.startEnumSelector(option("foodSafetyPreset"), SmartAutoMineConfig.FoodSafetyPreset.class, config.foodSafetyPreset)
+				.setDefaultValue(defaults.foodSafetyPreset)
+				.setTooltip(tooltip("foodSafetyPreset"))
+				.setSaveConsumer(v -> config.foodSafetyPreset = v)
+				.setDisplayRequirement(Requirement.isTrue(autoEatEnabled))
+				.build());
+
+		return builder.build();
+	}
+}

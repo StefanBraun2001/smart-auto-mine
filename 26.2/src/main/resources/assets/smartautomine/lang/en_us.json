@@ -5,6 +5,11 @@
 
 	"text.autoconfig.smartautomine.title": "Smart Auto Mine",
 
+	"text.autoconfig.smartautomine.category.mining": "Mining",
+	"text.autoconfig.smartautomine.category.safety": "Safety",
+	"text.autoconfig.smartautomine.category.general": "General",
+	"text.autoconfig.smartautomine.category.autoeat": "Auto-eat",
+
 	"text.autoconfig.smartautomine.option.minDurability": "Min durability (0 = disabled)",
 	"text.autoconfig.smartautomine.option.minDurability.@Tooltip": "Stop (or switch tools) before durability drops below this absolute value.",
 
