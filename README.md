@@ -5,7 +5,7 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **B0.5** (beta), **MC 26.2 only** (1.20.4 support
+Current build: **B0.5.1** (beta), **MC 26.2 only** (1.20.4 support
 was dropped as of A0.4). Grab a built jar from the
 [Releases](../../releases) page, or build from source with
 `./gradlew build` inside `26.2/`. See [docs/GUIDE.md](docs/GUIDE.md) for
@@ -34,6 +34,9 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   flicker; **Vanilla input** only holds the button (no flicker, but pauses
   while a screen is open); **Legacy** always drives directly (keeps mining
   through screens, but the attack indicator flickers, like Toro's Auto Mine).
+- **Throttle**: alternates mining for a configured duration, then pausing
+  for another, with an option to freeze the max-duration timer during the
+  pause.
 - Stop conditions: min durability (absolute/%), hunger safety stop, health
   safety stop, max duration.
 - Health safety stop can either hard-disable (default) or, with **Eat food

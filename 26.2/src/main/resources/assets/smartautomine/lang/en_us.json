@@ -6,6 +6,7 @@
 	"text.autoconfig.smartautomine.title": "Smart Auto Mine",
 
 	"text.autoconfig.smartautomine.category.mining": "Mining",
+	"text.autoconfig.smartautomine.category.throttle": "Throttle",
 	"text.autoconfig.smartautomine.category.safety": "Safety",
 	"text.autoconfig.smartautomine.category.general": "General",
 	"text.autoconfig.smartautomine.category.autoeat": "Auto-eat",
@@ -42,6 +43,18 @@
 
 	"text.autoconfig.smartautomine.option.maxDuration": "Max duration (empty = unlimited)",
 	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "e.g. '90m', '1.5h', '1h30m'. Auto-disable after this long.",
+
+	"text.autoconfig.smartautomine.option.throttleEnabled": "Throttle",
+	"text.autoconfig.smartautomine.option.throttleEnabled.@Tooltip": "On: alternates mining/pausing for the durations below.",
+
+	"text.autoconfig.smartautomine.option.throttleMineDuration": "Mine for",
+	"text.autoconfig.smartautomine.option.throttleMineDuration.@Tooltip": "e.g. '90m', '1.5h', '1h30m'. How long each mining phase lasts before pausing.",
+
+	"text.autoconfig.smartautomine.option.throttlePauseDuration": "Then pause for",
+	"text.autoconfig.smartautomine.option.throttlePauseDuration.@Tooltip": "e.g. '90m', '1.5h', '1h30m'. How long each paused phase lasts before mining again.",
+
+	"text.autoconfig.smartautomine.option.freezeDurationDuringThrottlePause": "Freeze duration timer during throttle pause",
+	"text.autoconfig.smartautomine.option.freezeDurationDuringThrottlePause.@Tooltip": "On (default): pauses the max-duration timer during a throttle pause.",
 
 	"text.autoconfig.smartautomine.option.useMoreTools": "Use more tools",
 	"text.autoconfig.smartautomine.option.useMoreTools.@Tooltip": "On: switch to another matching tool in the hotbar instead of stopping when durability runs low.",

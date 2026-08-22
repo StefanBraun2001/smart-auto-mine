@@ -82,6 +82,42 @@ public class SmartAutoMineConfigScreen {
 				.setSaveConsumer(v -> config.maxDuration = v)
 				.build());
 
+		// --- Throttle tab ---
+
+		ConfigCategory throttle = builder.getOrCreateCategory(category("throttle"));
+
+		BooleanListEntry throttleEnabled = entryBuilder
+				.startBooleanToggle(option("throttleEnabled"), config.throttleEnabled)
+				.setDefaultValue(defaults.throttleEnabled)
+				.setTooltip(tooltip("throttleEnabled"))
+				.setSaveConsumer(v -> config.throttleEnabled = v)
+				.build();
+		throttle.addEntry(throttleEnabled);
+
+		throttle.addEntry(entryBuilder
+				.startStrField(option("throttleMineDuration"), config.throttleMineDuration)
+				.setDefaultValue(defaults.throttleMineDuration)
+				.setTooltip(tooltip("throttleMineDuration"))
+				.setSaveConsumer(v -> config.throttleMineDuration = v)
+				.setDisplayRequirement(Requirement.isTrue(throttleEnabled))
+				.build());
+
+		throttle.addEntry(entryBuilder
+				.startStrField(option("throttlePauseDuration"), config.throttlePauseDuration)
+				.setDefaultValue(defaults.throttlePauseDuration)
+				.setTooltip(tooltip("throttlePauseDuration"))
+				.setSaveConsumer(v -> config.throttlePauseDuration = v)
+				.setDisplayRequirement(Requirement.isTrue(throttleEnabled))
+				.build());
+
+		throttle.addEntry(entryBuilder
+				.startBooleanToggle(option("freezeDurationDuringThrottlePause"), config.freezeDurationDuringThrottlePause)
+				.setDefaultValue(defaults.freezeDurationDuringThrottlePause)
+				.setTooltip(tooltip("freezeDurationDuringThrottlePause"))
+				.setSaveConsumer(v -> config.freezeDurationDuringThrottlePause = v)
+				.setDisplayRequirement(Requirement.isTrue(throttleEnabled))
+				.build());
+
 		// --- Safety tab ---
 
 		ConfigCategory safety = builder.getOrCreateCategory(category("safety"));

@@ -39,6 +39,17 @@ public class AutoMineLogic {
 	private static final int STARTUP_MINE_SUPPRESS_TICKS = 5;
 
 	private static long elapsedActiveTicks = 0;
+
+	// Throttle: alternates between a "mining" phase and a "paused" phase for the configured
+	// durations. Unlike Attack's throttle, this has no other timing feature to take priority
+	// over - it's just a plain on/off gate.
+	private static boolean throttleMiningPhase = true;
+	private static long throttlePhaseTicksRemaining = 0;
+	// Whether the throttle mechanism itself was engaged last tick - used to (re)start on a
+	// fresh mining phase the moment it becomes engaged, distinct from throttlePhasePassedLastTick
+	// below (which tracks the mining/pause phase transitions for feedback messages).
+	private static Boolean throttleEngagedLastTick = null;
+	private static Boolean throttlePhasePassedLastTick = null;
 	// -1 = not counting; set to the grace length once the offhand first reads empty and
 	// counts down to the stop. No need to un-set it on refill: an empty offhand slot can't
 	// be topped up automatically (a dropper can't place into it), so once it's empty it
@@ -71,6 +82,10 @@ public class AutoMineLogic {
 
 	public static void reset() {
 		elapsedActiveTicks = 0;
+		throttleMiningPhase = true;
+		throttlePhaseTicksRemaining = 0;
+		throttleEngagedLastTick = null;
+		throttlePhasePassedLastTick = null;
 		offhandEmptyGraceTicks = -1;
 		offhandHadItems = false;
 		lastKnownMainHandItem = ItemStack.EMPTY;
@@ -104,12 +119,15 @@ public class AutoMineLogic {
 		boolean placeMine = SmartAutoMineClient.isPlaceMineActive();
 		boolean screenOpen = client.gui.screen() != null;
 		boolean miningPaused = isMiningPaused(config, placeMine, screenOpen);
+		boolean throttleGatePasses = tickThrottle(client, config);
 
-		// Max-duration timer. Normally it counts every tick, but with the toggle on it freezes
-		// while the mod is paused (a screen open in a mode that pauses mining), so the limit
-		// measures actual working time rather than idle menu time - matching how the timer
-		// already skips ticks spent auto-eating (that path doesn't run tick() at all).
-		if (!miningPaused || !config.pauseTimerWhileMiningPaused) {
+		// Max-duration timer. Normally it counts every tick, but freezes while the mod is
+		// paused - either a screen open in a mode that pauses mining, or a throttle pause with
+		// its own freeze toggle on - so the limit measures actual working time rather than idle
+		// time, matching how the timer already skips ticks spent auto-eating (that path doesn't
+		// run tick() at all).
+		boolean pausedForThrottlePause = config.throttleEnabled && !throttleGatePasses && config.freezeDurationDuringThrottlePause;
+		if ((!miningPaused || !config.pauseTimerWhileMiningPaused) && !pausedForThrottlePause) {
 			elapsedActiveTicks++;
 		}
 
@@ -151,11 +169,54 @@ public class AutoMineLogic {
 			}
 		}
 
+		if (!throttleGatePasses) {
+			releaseInputs(client);
+			return;
+		}
+
 		if (placeMine) {
 			tickPlaceMine(client, player, config, screenOpen);
 		} else {
 			tickRegularMine(client, player, config, screenOpen);
 		}
+	}
+
+	// Advances the throttle phase timer and returns whether mining should be allowed this tick.
+	// Always returns true while Throttle is off. Misconfigured durations (unparseable/zero) also
+	// pass through ungated rather than risk getting stuck permanently paused.
+	private static boolean tickThrottle(Minecraft client, SmartAutoMineConfig config) {
+		if (config.throttleEnabled && (throttleEngagedLastTick == null || !throttleEngagedLastTick)) {
+			// Just became engaged - always (re)start on a fresh mining phase.
+			throttleMiningPhase = true;
+			throttlePhaseTicksRemaining = DurationParser.parseTicks(config.throttleMineDuration);
+		}
+		throttleEngagedLastTick = config.throttleEnabled;
+
+		if (!config.throttleEnabled) {
+			throttlePhasePassedLastTick = null; // stale state - re-evaluate cleanly once re-engaged
+			return true;
+		}
+
+		long throttleMineTicks = DurationParser.parseTicks(config.throttleMineDuration);
+		long throttlePauseTicks = DurationParser.parseTicks(config.throttlePauseDuration);
+		if (throttleMineTicks <= 0 || throttlePauseTicks <= 0) {
+			return true;
+		}
+
+		if (throttlePhaseTicksRemaining <= 0) {
+			throttleMiningPhase = !throttleMiningPhase;
+			throttlePhaseTicksRemaining = throttleMiningPhase ? throttleMineTicks : throttlePauseTicks;
+		}
+		boolean gatePasses = throttleMiningPhase;
+		throttlePhaseTicksRemaining--;
+
+		if (throttlePhasePassedLastTick == null || throttlePhasePassedLastTick != gatePasses) {
+			FeedbackUtil.send(client, config, gatePasses
+					? "Smart Auto Mine: throttle - mining"
+					: "Smart Auto Mine: throttle - pausing");
+		}
+		throttlePhasePassedLastTick = gatePasses;
+		return gatePasses;
 	}
 
 	// True only when the mod deliberately does nothing this tick because a screen is open in

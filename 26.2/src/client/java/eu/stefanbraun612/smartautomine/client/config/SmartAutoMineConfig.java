@@ -32,6 +32,16 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	public String maxDuration = ""; // e.g. "90m", "1.5h", "5400s", "1h30m" - empty = unlimited
 
+	// --- Throttle ---
+
+	public boolean throttleEnabled = false;
+
+	public String throttleMineDuration = "5m"; // same free-text format as maxDuration
+
+	public String throttlePauseDuration = "1m";
+
+	public boolean freezeDurationDuringThrottlePause = true; // pauses the max-duration timer while throttle is paused
+
 	// --- Tool rotation ---
 
 	public boolean useMoreTools = false;
