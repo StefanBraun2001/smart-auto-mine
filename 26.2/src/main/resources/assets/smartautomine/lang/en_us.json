@@ -10,6 +10,7 @@
 	"text.autoconfig.smartautomine.category.safety": "Safety",
 	"text.autoconfig.smartautomine.category.general": "General",
 	"text.autoconfig.smartautomine.category.autoeat": "Auto-eat",
+	"text.autoconfig.smartautomine.category.presets": "Presets",
 
 	"text.autoconfig.smartautomine.option.minDurability": "Min durability (0 = disabled)",
 	"text.autoconfig.smartautomine.option.minDurability.@Tooltip": "Stop (or switch tools) before durability drops below this absolute value.",
@@ -108,5 +109,16 @@
 	"text.autoconfig.smartautomine.option.autoEatAmountMode.@Tooltip": "EAT_ONCE (default): one bite per dip below the threshold. DONT_OVEREAT: keep eating without wasting nutrition past 20. FILL_HUNGER: keep eating to a full bar, regardless of waste.",
 
 	"text.autoconfig.smartautomine.option.foodSafetyPreset": "Auto-eat food safety",
-	"text.autoconfig.smartautomine.option.foodSafetyPreset.@Tooltip": "LIGHT (default): blocks golden apple/pufferfish. FOOD_INSPECTOR: also rotten flesh/spider eye/raw chicken/poisonous potato. RAT: no extra blocks."
+	"text.autoconfig.smartautomine.option.foodSafetyPreset.@Tooltip": "LIGHT (default): blocks golden apple/pufferfish. FOOD_INSPECTOR: also rotten flesh/spider eye/raw chicken/poisonous potato. RAT: no extra blocks.",
+
+	"text.autoconfig.smartautomine.presets.saved": "Saved presets: %s",
+
+	"text.autoconfig.smartautomine.option.presetApply": "Apply preset",
+	"text.autoconfig.smartautomine.option.presetApply.@Tooltip": "Type an exact saved preset name, then Save & Done to apply it. Leave blank to do nothing. Takes effect after any other changes on this screen.",
+
+	"text.autoconfig.smartautomine.option.presetSaveAs": "Save current settings as",
+	"text.autoconfig.smartautomine.option.presetSaveAs.@Tooltip": "Type a name and Save & Done to save the current settings (including any other changes on this screen) as a new/overwritten preset. Leave blank to do nothing.",
+
+	"text.autoconfig.smartautomine.option.presetDelete": "Delete preset",
+	"text.autoconfig.smartautomine.option.presetDelete.@Tooltip": "Type an exact saved preset name, then Save & Done to delete it. Leave blank to do nothing."
 }

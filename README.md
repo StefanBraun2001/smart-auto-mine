@@ -5,7 +5,7 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **B0.5.1** (beta), **MC 26.2 only** (1.20.4 support
+Current build: **B0.5.2** (beta), **MC 26.2 only** (1.20.4 support
 was dropped as of A0.4). Grab a built jar from the
 [Releases](../../releases) page, or build from source with
 `./gradlew build` inside `26.2/`. See [docs/GUIDE.md](docs/GUIDE.md) for
@@ -64,10 +64,10 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   choice of how much to eat per trigger: one bite, as much as won't waste
   nutrition past a full bar, or straight to full regardless of waste.
 - **Presets**: named bundles of duration/durability/tool-rotation/auto-eat
-  settings, managed via client-side commands
-  (`/smartautomine preset list|apply|save|delete`). Ships with
-  `Pickaxe_TP`, `Pickaxe_MT_TP`, `Pickaxe_MT_AEHP`, and
-  `Pickaxe_MT_TP_AEHP` - see the bundled README for what each one sets.
+  settings, managed from their own config tab (apply/save/delete by name,
+  applied on the screen's Save & Done). Ships with `Pickaxe_TP`,
+  `Pickaxe_MT_TP`, `Pickaxe_MT_AEHP`, and `Pickaxe_MT_TP_AEHP` - see
+  [docs/GUIDE.md](docs/GUIDE.md#presets) for what each one sets.
 - Auto-resumes after a reconnect handled by the separate
   [Smart Auto Reconnect](https://github.com/StefanBraun2001/smart-auto-reconnect)
   mod; optional "resume after manual reconnect" toggle for reconnects you

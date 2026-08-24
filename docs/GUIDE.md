@@ -206,23 +206,42 @@ world finishes loading, regardless of the setting above.
 
 ## Presets
 
-Named bundles of "technique" settings - never your hotbar slot or keybind.
-Covers: max duration, min durability (absolute/%), use more tools + tool
-rotation mode/keyword, auto-eat enabled, auto-eat hunger threshold, hunger
-safety stop + threshold.
+Named bundles of "technique" settings - never your hotbar slot, keybind,
+or feedback style, since those depend on your own setup. Covers: max
+duration, min durability (absolute/%), use more tools + tool rotation
+mode/keyword, auto-eat enabled, auto-eat hunger threshold, hunger safety
+stop + threshold.
 
-```
-/smartautomine preset list
-/smartautomine preset apply <name>
-/smartautomine preset save <name>
-/smartautomine preset delete <name>
-```
+Managed from the **Presets** tab, not commands - it's the one tab that
+reads live (a text line lists every currently saved preset by name) but
+only *acts* when you press the config screen's own **Save & Done**, since
+Cloth Config has no clickable-button entries to act on immediately:
 
-Client-side commands - work on any server regardless of OP status.
+- **Apply preset**: type an exact saved name, then Save & Done. Overwrites
+  whatever you changed elsewhere on the same screen, since it applies
+  last, right before the screen actually saves.
+- **Save current settings as**: type a name, then Save & Done - saves the
+  full current settings (including anything else you changed on the same
+  screen) under that name, creating it or overwriting an existing preset
+  of the same name.
+- **Delete preset**: type an exact saved name, then Save & Done.
 
-Ships with four built-in presets, all pickaxe-keyword tool rotation, in
-increasing order of safety nets - see the repo README for what each one
-sets: `Pickaxe_TP`, `Pickaxe_MT_TP`, `Pickaxe_MT_AEHP`, `Pickaxe_MT_TP_AEHP`.
+All three are independent and optional - leave any of them blank to skip
+that action. If you fill in more than one at once, apply runs first, then
+save, then delete, so e.g. typing the same name into both Apply and Save
+just re-saves that preset's own values back under itself (a no-op).
+
+Ships with four built-in presets, all pickaxe-keyword tool rotation:
+
+- **Pickaxe_TP**: tool protection only (durability floor 10 / 5%). No
+  tool rotation, no auto-eat, no hunger safety stop.
+- **Pickaxe_MT_TP**: same as above, plus "Use more tools" tool rotation.
+- **Pickaxe_MT_AEHP**: "Use more tools" tool rotation plus auto-eat with
+  hunger-safety protection (eat below 7, hard-stop below 3) - no
+  durability floor set.
+- **Pickaxe_MT_TP_AEHP**: everything at once - tool protection, tool
+  rotation, and auto-eat with hunger-safety protection. The fullest
+  safety net of the four.
 
 ## Troubleshooting
 
