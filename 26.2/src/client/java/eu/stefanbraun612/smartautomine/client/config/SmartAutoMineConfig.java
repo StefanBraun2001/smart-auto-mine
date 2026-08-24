@@ -3,6 +3,9 @@ package eu.stefanbraun612.smartautomine.client.config;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Config(name = "smartautomine")
 public class SmartAutoMineConfig implements ConfigData {
 
@@ -27,6 +30,19 @@ public class SmartAutoMineConfig implements ConfigData {
 	public boolean ignoreHealthSafetyWhileRegenerating = false;
 
 	public boolean paranoiaSwitchEnabled = false;
+
+	// --- Durability warning ---
+	// Runs independently of the toggle above - an always-on watchdog for accidentally
+	// hand-using a tool that would already fail the Min durability/% guard, even while
+	// this mod isn't mining with it. Reuses that same threshold rather than a separate
+	// one. Mutually exclusive with Smart Auto Attack's equivalent feature if installed -
+	// see SmartAutoMineConfigScreen's error supplier on durabilityWarningEnabled.
+
+	public boolean durabilityWarningEnabled = false;
+
+	public List<String> durabilityWarningKeywords = new ArrayList<>(); // e.g. "pickaxe", "axe" - substring match, same as toolKeyword
+
+	public String durabilityWarningSound = "minecraft:block.bell.use"; // full sound event ID
 
 	// --- Timing ---
 

@@ -5,7 +5,7 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **B0.5.2** (beta), **MC 26.2 only** (1.20.4 support
+Current build: **B0.5.3** (beta), **MC 26.2 only** (1.20.4 support
 was dropped as of A0.4). Grab a built jar from the
 [Releases](../../releases) page, or build from source with
 `./gradlew build` inside `26.2/`. See [docs/GUIDE.md](docs/GUIDE.md) for
@@ -50,6 +50,13 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
 - "Use more tools": rotates to another hotbar item when the current tool's
   durability guard trips - by keyword, by tool category (any material), or
   requiring an exact item match.
+- **Durability warning**: an always-on watchdog (works even while the mod
+  itself is off) that plays a sound when a held item matching a
+  user-configured keyword (e.g. `pickaxe`, `axe`) drops below the same Min
+  durability/% threshold above - once on equip, then looping (max twice a
+  second) while mining with it. Mutually exclusive with the equivalent
+  feature in [Smart Auto Attack](https://github.com/StefanBraun2001/smart-auto-attack)
+  if both are installed - only one can be enabled at a time.
 - Place-mine mode: right-click tries main-hand then offhand (so a main-hand
   shovel tills existing dirt and the offhand places a new block when there's
   nothing to till) alongside held left-click to mine - a faithful stand-in

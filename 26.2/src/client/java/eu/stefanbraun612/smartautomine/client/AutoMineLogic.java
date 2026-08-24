@@ -4,12 +4,9 @@ import eu.stefanbraun612.smartautomine.client.config.SmartAutoMineConfig;
 import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
-import net.minecraft.resources.Identifier;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
@@ -376,15 +373,7 @@ public class AutoMineLogic {
 		if (!config.playSoundOnAutoStop) {
 			return;
 		}
-		Identifier id = Identifier.tryParse(config.autoStopSound);
-		if (id == null) {
-			return;
-		}
-		SoundEvent sound = BuiltInRegistries.SOUND_EVENT.getValue(id);
-		if (sound == null) {
-			return;
-		}
-		client.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f));
+		SoundUtil.play(client, config.autoStopSound);
 	}
 
 	private static boolean passesHungerSafety(Player player, SmartAutoMineConfig config) {
@@ -533,7 +522,9 @@ public class AutoMineLogic {
 		};
 	}
 
-	private static boolean matchesKeyword(ItemStack stack, String keyword) {
+	// Package-private: also reused by DurabilityWarningLogic (its list-of-keywords match
+	// is just this, looped).
+	static boolean matchesKeyword(ItemStack stack, String keyword) {
 		if (keyword == null || keyword.isBlank()) {
 			return false;
 		}
@@ -541,7 +532,10 @@ public class AutoMineLogic {
 		return id.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT));
 	}
 
-	private static boolean hasEnoughDurability(ItemStack stack, SmartAutoMineConfig config) {
+	// Package-private: also reused by DurabilityWarningLogic, which only ever calls this
+	// with a keyword-matched (non-empty) stack, so the "nothing equipped" empty-stack
+	// branch below never actually applies to it.
+	static boolean hasEnoughDurability(ItemStack stack, SmartAutoMineConfig config) {
 		if (stack.isEmpty()) {
 			// Nothing equipped - either the previous tool just broke or there was
 			// never one to begin with. Never "enough", even with the guard fully

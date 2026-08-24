@@ -78,6 +78,10 @@ public class SmartAutoMineClient implements ClientModInitializer {
 			while (placeMineToggleKey.consumeClick()) {
 				handleToggle(true, client);
 			}
+			// Independent of `enabled` and the settle window below - a purely local sound
+			// cue, not mine/eat packets, so there's nothing unsafe about it running
+			// against a still-loading world.
+			DurabilityWarningLogic.tick(client);
 			if (joinSettleTicksLeft > 0) {
 				joinSettleTicksLeft--;
 				return;
