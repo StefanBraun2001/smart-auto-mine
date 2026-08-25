@@ -44,14 +44,18 @@
 	"text.autoconfig.smartautomine.option.paranoiaSwitchEnabled.@Tooltip": "Off (default). On: don't fully trust Regeneration - still pause-and-eat when triggered even while regenerating, so hunger never goes untended. Needs Eat to regenerate health and Auto-eat both on.",
 
 	"text.autoconfig.smartautomine.option.durabilityWarningEnabled": "Durability warning",
-	"text.autoconfig.smartautomine.option.durabilityWarningEnabled.@Tooltip": "On: warns by sound whenever a held item matching a keyword below is already below Min durability/%. Runs even while the mod is off.",
+	"text.autoconfig.smartautomine.option.durabilityWarningEnabled.@Tooltip": "On: warns by sound when a main-hand or offhand item matching a keyword below is already below Min durability/% - once on equip, then looping while attacking/using it. Runs even while the mod is off.",
 	"text.autoconfig.smartautomine.option.durabilityWarningEnabled.conflict": "Also enabled in Smart Auto Attack - disable it there first.",
 
 	"text.autoconfig.smartautomine.option.durabilityWarningKeywords": "Warn for tools",
 	"text.autoconfig.smartautomine.option.durabilityWarningKeywords.@Tooltip": "e.g. 'pickaxe', 'axe' - substring match against the item ID, same as Tool keyword.",
 
 	"text.autoconfig.smartautomine.option.durabilityWarningSound": "Warning sound",
-	"text.autoconfig.smartautomine.option.durabilityWarningSound.@Tooltip": "Sound event ID, e.g. minecraft:block.bell.use.",
+	"text.autoconfig.smartautomine.option.durabilityWarningSound.@Tooltip": "Sound event ID, e.g. minecraft:block.bell.use. Shared with Armor durability warning below.",
+
+	"text.autoconfig.smartautomine.option.armorDurabilityWarningEnabled": "Armor durability warning",
+	"text.autoconfig.smartautomine.option.armorDurabilityWarningEnabled.@Tooltip": "On: warns by sound whenever any equipped armor piece (or elytra) is below Min durability/%, no keyword list needed. Runs even while the mod is off.",
+	"text.autoconfig.smartautomine.option.armorDurabilityWarningEnabled.conflict": "Also enabled in Smart Auto Attack - disable it there first.",
 
 	"text.autoconfig.smartautomine.option.maxDuration": "Max duration (empty = unlimited)",
 	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "e.g. '90m', '1.5h', '1h30m'. Auto-disable after this long.",

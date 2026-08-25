@@ -45,12 +45,20 @@ public class SmartAutoMineConfigScreen {
 	private static final String SIBLING_ATTACK_CONFIG_CLASS = "eu.stefanbraun612.smartautoattack.client.config.SmartAutoAttackConfig";
 
 	private static boolean isSiblingDurabilityWarningEnabled() {
+		return isSiblingFieldTrue("durabilityWarningEnabled");
+	}
+
+	private static boolean isSiblingArmorDurabilityWarningEnabled() {
+		return isSiblingFieldTrue("armorDurabilityWarningEnabled");
+	}
+
+	private static boolean isSiblingFieldTrue(String fieldName) {
 		try {
 			Class<?> attackConfigClass = Class.forName(SIBLING_ATTACK_CONFIG_CLASS);
 			Object attackConfig = AutoConfig.getConfigHolder(attackConfigClass.asSubclass(ConfigData.class)).getConfig();
-			return attackConfigClass.getField("durabilityWarningEnabled").getBoolean(attackConfig);
+			return attackConfigClass.getField(fieldName).getBoolean(attackConfig);
 		} catch (Throwable t) {
-			return false; // Smart Auto Attack not installed, doesn't have this feature yet, or any reflection issue
+			return false; // Smart Auto Attack not installed, doesn't have this feature/field yet, or any reflection issue
 		}
 	}
 
@@ -280,6 +288,16 @@ public class SmartAutoMineConfigScreen {
 				.setTooltip(tooltip("durabilityWarningSound"))
 				.setSaveConsumer(v -> config.durabilityWarningSound = v)
 				.setDisplayRequirement(Requirement.isTrue(durabilityWarningEnabled))
+				.build());
+
+		durabilityWarning.addEntry(entryBuilder
+				.startBooleanToggle(option("armorDurabilityWarningEnabled"), config.armorDurabilityWarningEnabled)
+				.setDefaultValue(defaults.armorDurabilityWarningEnabled)
+				.setTooltip(tooltip("armorDurabilityWarningEnabled"))
+				.setSaveConsumer(v -> config.armorDurabilityWarningEnabled = v)
+				.setErrorSupplier(v -> v && isSiblingArmorDurabilityWarningEnabled()
+						? Optional.of(Component.translatable(PREFIX + "armorDurabilityWarningEnabled.conflict"))
+						: Optional.empty())
 				.build());
 
 		// --- General tab ---
