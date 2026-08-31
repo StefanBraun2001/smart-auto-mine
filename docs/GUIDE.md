@@ -123,15 +123,17 @@ mode - substring match against the item ID, case-insensitive. Checks
 matches one of these keywords *and* its durability is already below the
 **Min durability** / **Min durability %** threshold from the Safety tab
 (the same values the auto-stop/rotation logic uses - there's no separate
-threshold for this), the mod plays **Warning sound** (default
-`minecraft:block.bell.use`, same free-text sound-event-ID format as
-Auto-stop sound, and shared with Armor durability warning below):
+threshold for this), the mod plays **Warning sound** (default is a
+bundled two-tone gong, `smartautomine:durability_gong`, distinct from the
+twin-bell Auto-stop sound so the two are easy to tell apart by ear; any
+other valid sound event ID works too, and it's shared with Armor
+durability warning below):
 
 - **Once**, the moment that item becomes held in that hand (switching to
   it, or its durability dropping below the threshold while already
   held).
-- **Then repeatedly**, capped at twice a second, for as long as you keep
-  holding down **either** attack/mine (left-click) **or** use
+- **Then repeatedly**, capped at once every 2 seconds, for as long as you
+  keep holding down **either** attack/mine (left-click) **or** use
   (right-click) with it - so shearing a sheep, tilling dirt, or making
   farmland with a low-durability tool warns you too, not just breaking
   blocks.
@@ -144,20 +146,9 @@ durability - no keyword list, since any equipped armor piece counts
 regardless of type. Uses the same Min durability/% threshold and Warning
 sound as the tool warning above. Plays once the moment a piece drops
 below the threshold or gets equipped already below it, then repeats
-(capped at twice a second) for as long as it stays equipped and low -
-there's no interaction key tied to wearing armor, so unlike the tool
+(capped at once every 2 seconds) for as long as it stays equipped and low
+- there's no interaction key tied to wearing armor, so unlike the tool
 warning this one isn't gated on attack/use being held.
-
-### Mutual exclusion with Smart Auto Attack
-
-Both toggles above are **independently** mutually exclusive with Smart
-Auto Attack's equivalent features, if you have both mods installed -
-enabling either one here while its counterpart in Smart Auto Attack is
-already enabled shows an error on the toggle and blocks the config
-screen's Save & Done, so the same low-durability item never triggers a
-double warning from two mods at once. You can, however, have (for
-example) the tool warning enabled here and the armor warning enabled in
-Smart Auto Attack at the same time - only matching toggles conflict.
 
 ## Place-mine mode
 
@@ -205,7 +196,9 @@ as a safety buffer. Turn off to resume almost immediately instead.
 
 Plays a sound whenever the mod stops *itself* - never on a manual toggle.
 **Auto-stop sound** is a full sound event ID, default
-`minecraft:block.bell.use`; invalid/unknown IDs simply play nothing.
+`smartautomine:auto_stop` (a bundled twin-bell ring - any other valid
+sound event ID, e.g. `minecraft:block.bell.use`, works too);
+invalid/unknown IDs simply play nothing.
 
 ## Auto-eat
 

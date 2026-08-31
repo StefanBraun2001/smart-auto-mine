@@ -18,11 +18,11 @@ import java.util.Map;
  * - Tool warning (durabilityWarningEnabled): main hand + offhand, filtered by keyword list.
  * - Armor warning (armorDurabilityWarningEnabled): all 4 armor slots (elytra included, since
  *   it occupies the chest slot), no keyword filter - any equipped item counts.
- * Plays once on equip, then loops (capped at twice a second) while a held slot is in use
- * (attack or use key) or, for armor, just periodically while still equipped and low.
+ * Plays once on equip, then loops (capped at once every 2 seconds) while a held slot is in
+ * use (attack or use key) or, for armor, just periodically while still equipped and low.
  */
 public class DurabilityWarningLogic {
-	private static final int SOUND_COOLDOWN_TICKS = 10; // 20 ticks/sec / 2 plays per sec
+	private static final int SOUND_COOLDOWN_TICKS = 40; // 20 ticks/sec * 2 sec between plays
 
 	private static final EquipmentSlot[] ARMOR_SLOTS = {
 			EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET

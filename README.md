@@ -5,7 +5,7 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **B0.5.4** (beta), **MC 26.2 only** (1.20.4 support
+Current build: **B0.5.5** (beta), **MC 26.2 only** (1.20.4 support
 was dropped as of A0.4). Grab a built jar from the
 [Releases](../../releases) page, or build from source with
 `./gradlew build` inside `26.2/`. See [docs/GUIDE.md](docs/GUIDE.md) for
@@ -54,12 +54,11 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   while the mod itself is off). Tool warning plays a sound when a
   main-hand *or offhand* item matching a user-configured keyword (e.g.
   `pickaxe`, `axe`) drops below the same Min durability/% threshold above
-  - once on equip, then looping (max twice a second) while mining *or*
-  right-click-using it (shearing, tilling, etc.). Armor warning checks
-  all 4 armor slots + elytra for durability, no keyword needed. Each
-  toggle is independently mutually exclusive with its counterpart in
-  [Smart Auto Attack](https://github.com/StefanBraun2001/smart-auto-attack)
-  if both are installed.
+  - once on equip, then looping (at most once every 2 seconds) while
+  mining *or* right-click-using it (shearing, tilling, etc.). Armor
+  warning checks all 4 armor slots + elytra for durability, no keyword
+  needed. Both share a bundled default warning sound (a two-tone gong,
+  distinct from the auto-stop sound below).
 - Place-mine mode: right-click tries main-hand then offhand (so a main-hand
   shovel tills existing dirt and the offhand places a new block when there's
   nothing to till) alongside held left-click to mine - a faithful stand-in
@@ -82,7 +81,8 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
   [Smart Auto Reconnect](https://github.com/StefanBraun2001/smart-auto-reconnect)
   mod; optional "resume after manual reconnect" toggle for reconnects you
   initiate yourself.
-- Auto-stop sound feedback.
+- Auto-stop sound feedback, with a bundled default twin-bell ring (any
+  other sound event ID works too).
 
 Full feature/config documentation lives in the bundled README shipped
 alongside the jars.

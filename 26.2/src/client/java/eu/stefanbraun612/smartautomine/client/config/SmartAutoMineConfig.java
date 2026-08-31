@@ -42,7 +42,7 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	public List<String> durabilityWarningKeywords = new ArrayList<>(); // e.g. "pickaxe", "axe" - substring match, same as toolKeyword
 
-	public String durabilityWarningSound = "minecraft:block.bell.use"; // full sound event ID
+	public String durabilityWarningSound = "smartautomine:durability_gong"; // full sound event ID - bundled two-tone gong, or any other valid sound event ID
 
 	// Separate toggle: checks all 4 armor slots (+ elytra, which occupies the chest slot)
 	// for durability regardless of item type - no keyword list, since "is this a helmet"
@@ -130,7 +130,7 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	public boolean playSoundOnAutoStop = true;
 
-	public String autoStopSound = "minecraft:block.bell.use"; // full sound event ID
+	public String autoStopSound = "smartautomine:auto_stop"; // full sound event ID - bundled twin-bell ring, or any other valid sound event ID
 
 	public boolean resumeAfterManualReconnect = false; // scripted reconnects (Smart Auto Reconnect) always resume regardless of this
 

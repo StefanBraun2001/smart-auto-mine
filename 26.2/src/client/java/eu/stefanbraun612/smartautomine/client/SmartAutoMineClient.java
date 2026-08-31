@@ -32,6 +32,7 @@ public class SmartAutoMineClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		SmartAutoMineSounds.init();
 		AutoConfig.register(SmartAutoMineConfig.class, GsonConfigSerializer::new);
 
 		KeyMapping.Category category = KeyMapping.Category.register(

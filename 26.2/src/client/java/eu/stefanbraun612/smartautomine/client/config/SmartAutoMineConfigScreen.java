@@ -3,7 +3,6 @@ package eu.stefanbraun612.smartautomine.client.config;
 import eu.stefanbraun612.smartautomine.client.MinePreset;
 import eu.stefanbraun612.smartautomine.client.PresetManager;
 import me.shedaniel.autoconfig.AutoConfig;
-import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
@@ -14,7 +13,6 @@ import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -36,30 +34,6 @@ public class SmartAutoMineConfigScreen {
 
 	private static Component category(String key) {
 		return Component.translatable(PREFIX + "category." + key);
-	}
-
-	// Fully-qualified name of the (optional, separate) Smart Auto Attack mod's config class -
-	// checked via reflection, same no-compile-time-dependency pattern as the Reconnect
-	// signal in SmartAutoMineClient, so this mod builds and runs fine whether or not
-	// Smart Auto Attack is installed, or whether its version has this feature at all.
-	private static final String SIBLING_ATTACK_CONFIG_CLASS = "eu.stefanbraun612.smartautoattack.client.config.SmartAutoAttackConfig";
-
-	private static boolean isSiblingDurabilityWarningEnabled() {
-		return isSiblingFieldTrue("durabilityWarningEnabled");
-	}
-
-	private static boolean isSiblingArmorDurabilityWarningEnabled() {
-		return isSiblingFieldTrue("armorDurabilityWarningEnabled");
-	}
-
-	private static boolean isSiblingFieldTrue(String fieldName) {
-		try {
-			Class<?> attackConfigClass = Class.forName(SIBLING_ATTACK_CONFIG_CLASS);
-			Object attackConfig = AutoConfig.getConfigHolder(attackConfigClass.asSubclass(ConfigData.class)).getConfig();
-			return attackConfigClass.getField(fieldName).getBoolean(attackConfig);
-		} catch (Throwable t) {
-			return false; // Smart Auto Attack not installed, doesn't have this feature/field yet, or any reflection issue
-		}
 	}
 
 	public static Screen build(Screen parent) {
@@ -268,9 +242,6 @@ public class SmartAutoMineConfigScreen {
 				.setDefaultValue(defaults.durabilityWarningEnabled)
 				.setTooltip(tooltip("durabilityWarningEnabled"))
 				.setSaveConsumer(v -> config.durabilityWarningEnabled = v)
-				.setErrorSupplier(v -> v && isSiblingDurabilityWarningEnabled()
-						? Optional.of(Component.translatable(PREFIX + "durabilityWarningEnabled.conflict"))
-						: Optional.empty())
 				.build();
 		durabilityWarning.addEntry(durabilityWarningEnabled);
 
@@ -295,9 +266,6 @@ public class SmartAutoMineConfigScreen {
 				.setDefaultValue(defaults.armorDurabilityWarningEnabled)
 				.setTooltip(tooltip("armorDurabilityWarningEnabled"))
 				.setSaveConsumer(v -> config.armorDurabilityWarningEnabled = v)
-				.setErrorSupplier(v -> v && isSiblingArmorDurabilityWarningEnabled()
-						? Optional.of(Component.translatable(PREFIX + "armorDurabilityWarningEnabled.conflict"))
-						: Optional.empty())
 				.build());
 
 		// --- General tab ---

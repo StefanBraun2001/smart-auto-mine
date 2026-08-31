@@ -1,0 +1,12 @@
+{
+	"auto_stop": {
+		"sounds": [
+			"smartautomine:auto_stop"
+		]
+	},
+	"durability_gong": {
+		"sounds": [
+			"smartautomine:durability_gong"
+		]
+	}
+}
