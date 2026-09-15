@@ -16,6 +16,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
@@ -314,7 +315,11 @@ public class AutoMineLogic {
 			BlockPos pos = hitResult.getBlockPos();
 			if (!client.level.getBlockState(pos).isAir()
 					&& client.gameMode.continueDestroyBlock(pos, hitResult.getDirection())) {
-				player.swing(InteractionHand.MAIN_HAND);
+				// swing() gained a SwingAnimation parameter in 26.3 - vanilla's own
+				// continueAttack() (which mining swings share the code path with) sources
+				// it from the item's own getAttackAnimation() the same way.
+				SwingAnimation swingAnimation = player.getMainHandItem().getAttackAnimation();
+				player.swing(InteractionHand.MAIN_HAND, swingAnimation, false);
 			}
 			return;
 		}
@@ -342,7 +347,11 @@ public class AutoMineLogic {
 				successHand = InteractionHand.OFF_HAND;
 			}
 			if (result instanceof InteractionResult.Success) {
-				player.swing(successHand);
+				// This is a right-click interact (till/place), not an attack - vanilla's own
+				// interact-swing path sources the animation from getInteractAnimation(),
+				// not getAttackAnimation().
+				SwingAnimation swingAnimation = player.getItemInHand(successHand).getInteractAnimation();
+				player.swing(successHand, swingAnimation, false);
 			}
 			placeInteractDelay = INTERACT_DELAY_TICKS;
 		}

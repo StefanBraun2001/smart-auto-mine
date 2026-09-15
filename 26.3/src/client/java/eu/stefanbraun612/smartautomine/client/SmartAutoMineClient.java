@@ -11,7 +11,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 public class SmartAutoMineClient implements ClientModInitializer {
 	public static final String MOD_ID = "smartautomine";
@@ -42,15 +41,15 @@ public class SmartAutoMineClient implements ClientModInitializer {
 		// Attack's J so all three can be bound without a clash if both mods are installed.
 		toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.smartautomine.toggle",
-				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_K,
+				InputConstants.Type.KEYBOARD,
+				InputConstants.KEY_K,
 				category
 		));
 
 		placeMineToggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.smartautomine.toggle_place_mine",
-				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_L,
+				InputConstants.Type.KEYBOARD,
+				InputConstants.KEY_L,
 				category
 		));
 
