@@ -10,6 +10,7 @@ import net.minecraft.sounds.SoundEvent;
 public class SmartAutoMineSounds {
 	public static final SoundEvent AUTO_STOP = register("auto_stop");
 	public static final SoundEvent DURABILITY_GONG = register("durability_gong");
+	public static final SoundEvent DURABILITY_CRITICAL = register("durability_critical");
 
 	public static void init() {
 		// No-op - just forces this class (and its static SoundEvent registrations) to load.

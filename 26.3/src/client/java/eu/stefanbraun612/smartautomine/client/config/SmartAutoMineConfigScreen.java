@@ -253,19 +253,86 @@ public class SmartAutoMineConfigScreen {
 				.setDisplayRequirement(Requirement.isTrue(durabilityWarningEnabled))
 				.build());
 
+		BooleanListEntry armorDurabilityWarningEnabled = entryBuilder
+				.startBooleanToggle(option("armorDurabilityWarningEnabled"), config.armorDurabilityWarningEnabled)
+				.setDefaultValue(defaults.armorDurabilityWarningEnabled)
+				.setTooltip(tooltip("armorDurabilityWarningEnabled"))
+				.setSaveConsumer(v -> config.armorDurabilityWarningEnabled = v)
+				.build();
+		durabilityWarning.addEntry(armorDurabilityWarningEnabled);
+
+		Requirement anyWarningEnabled = Requirement.any(
+				Requirement.isTrue(durabilityWarningEnabled),
+				Requirement.isTrue(armorDurabilityWarningEnabled));
+
+		EnumListEntry<SmartAutoMineConfig.DurabilityWarningMode> durabilityWarningMode = entryBuilder
+				.startEnumSelector(option("durabilityWarningMode"), SmartAutoMineConfig.DurabilityWarningMode.class, config.durabilityWarningMode)
+				.setDefaultValue(defaults.durabilityWarningMode)
+				.setTooltip(tooltip("durabilityWarningMode"))
+				.setSaveConsumer(v -> config.durabilityWarningMode = v)
+				.setDisplayRequirement(anyWarningEnabled)
+				.build();
+		durabilityWarning.addEntry(durabilityWarningMode);
+
+		Requirement lowTierShown = Requirement.all(anyWarningEnabled,
+				Requirement.isValue(durabilityWarningMode, SmartAutoMineConfig.DurabilityWarningMode.LOW_AND_CRITICAL));
+		Requirement criticalTierShown = Requirement.all(anyWarningEnabled,
+				Requirement.isValue(durabilityWarningMode,
+						SmartAutoMineConfig.DurabilityWarningMode.CRITICAL_ONLY,
+						SmartAutoMineConfig.DurabilityWarningMode.LOW_AND_CRITICAL));
+
+		durabilityWarning.addEntry(entryBuilder
+				.startIntField(option("lowWarningDurability"), config.lowWarningDurability)
+				.setDefaultValue(defaults.lowWarningDurability)
+				.setMin(0)
+				.setTooltip(tooltip("lowWarningDurability"))
+				.setSaveConsumer(v -> config.lowWarningDurability = v)
+				.setDisplayRequirement(lowTierShown)
+				.build());
+
+		durabilityWarning.addEntry(entryBuilder
+				.startIntField(option("lowWarningDurabilityPercent"), config.lowWarningDurabilityPercent)
+				.setDefaultValue(defaults.lowWarningDurabilityPercent)
+				.setMin(0)
+				.setMax(100)
+				.setTooltip(tooltip("lowWarningDurabilityPercent"))
+				.setSaveConsumer(v -> config.lowWarningDurabilityPercent = v)
+				.setDisplayRequirement(lowTierShown)
+				.build());
+
+		durabilityWarning.addEntry(entryBuilder
+				.startIntField(option("criticalWarningDurability"), config.criticalWarningDurability)
+				.setDefaultValue(defaults.criticalWarningDurability)
+				.setMin(0)
+				.setTooltip(tooltip("criticalWarningDurability"))
+				.setSaveConsumer(v -> config.criticalWarningDurability = v)
+				.setDisplayRequirement(criticalTierShown)
+				.build());
+
+		durabilityWarning.addEntry(entryBuilder
+				.startIntField(option("criticalWarningDurabilityPercent"), config.criticalWarningDurabilityPercent)
+				.setDefaultValue(defaults.criticalWarningDurabilityPercent)
+				.setMin(0)
+				.setMax(100)
+				.setTooltip(tooltip("criticalWarningDurabilityPercent"))
+				.setSaveConsumer(v -> config.criticalWarningDurabilityPercent = v)
+				.setDisplayRequirement(criticalTierShown)
+				.build());
+
 		durabilityWarning.addEntry(entryBuilder
 				.startStrField(option("durabilityWarningSound"), config.durabilityWarningSound)
 				.setDefaultValue(defaults.durabilityWarningSound)
 				.setTooltip(tooltip("durabilityWarningSound"))
 				.setSaveConsumer(v -> config.durabilityWarningSound = v)
-				.setDisplayRequirement(Requirement.isTrue(durabilityWarningEnabled))
+				.setDisplayRequirement(lowTierShown)
 				.build());
 
 		durabilityWarning.addEntry(entryBuilder
-				.startBooleanToggle(option("armorDurabilityWarningEnabled"), config.armorDurabilityWarningEnabled)
-				.setDefaultValue(defaults.armorDurabilityWarningEnabled)
-				.setTooltip(tooltip("armorDurabilityWarningEnabled"))
-				.setSaveConsumer(v -> config.armorDurabilityWarningEnabled = v)
+				.startStrField(option("durabilityCriticalWarningSound"), config.durabilityCriticalWarningSound)
+				.setDefaultValue(defaults.durabilityCriticalWarningSound)
+				.setTooltip(tooltip("durabilityCriticalWarningSound"))
+				.setSaveConsumer(v -> config.durabilityCriticalWarningSound = v)
+				.setDisplayRequirement(anyWarningEnabled)
 				.build());
 
 		// --- General tab ---

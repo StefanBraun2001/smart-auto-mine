@@ -44,16 +44,34 @@
 	"text.autoconfig.smartautomine.option.paranoiaSwitchEnabled.@Tooltip": "Off (default). On: don't fully trust Regeneration - still pause-and-eat when triggered even while regenerating, so hunger never goes untended. Needs Eat to regenerate health and Auto-eat both on.",
 
 	"text.autoconfig.smartautomine.option.durabilityWarningEnabled": "Durability warning",
-	"text.autoconfig.smartautomine.option.durabilityWarningEnabled.@Tooltip": "On: warns by sound when a main-hand or offhand item matching a keyword below is already below Min durability/% - once on equip, then looping while mining/using it. Runs even while the mod is off.",
+	"text.autoconfig.smartautomine.option.durabilityWarningEnabled.@Tooltip": "On: warns by sound when a main-hand or offhand item matching a keyword below is close to breaking (see Warning mode) - once on equip, then looping while mining/using it. Runs even while the mod is off.",
 
 	"text.autoconfig.smartautomine.option.durabilityWarningKeywords": "Warn for tools",
 	"text.autoconfig.smartautomine.option.durabilityWarningKeywords.@Tooltip": "e.g. 'pickaxe', 'axe' - substring match against the item ID, same as Tool keyword.",
 
-	"text.autoconfig.smartautomine.option.durabilityWarningSound": "Warning sound",
-	"text.autoconfig.smartautomine.option.durabilityWarningSound.@Tooltip": "Sound event ID. Default is a bundled two-tone gong (smartautomine:durability_gong); any other valid sound event ID (e.g. minecraft:block.bell.use) works too. Shared with Armor durability warning below.",
-
 	"text.autoconfig.smartautomine.option.armorDurabilityWarningEnabled": "Armor durability warning",
-	"text.autoconfig.smartautomine.option.armorDurabilityWarningEnabled.@Tooltip": "On: warns by sound whenever any equipped armor piece (or elytra) is below Min durability/%, no keyword list needed. Runs even while the mod is off.",
+	"text.autoconfig.smartautomine.option.armorDurabilityWarningEnabled.@Tooltip": "On: warns by sound whenever any equipped armor piece (or elytra) is close to breaking (see Warning mode), no keyword list needed. Runs even while the mod is off.",
+
+	"text.autoconfig.smartautomine.option.durabilityWarningMode": "Warning mode",
+	"text.autoconfig.smartautomine.option.durabilityWarningMode.@Tooltip": "TOOL_GUARD (default): warns (critical sound) once an item is at Min durability/% from the Safety tab. CRITICAL_ONLY: own critical threshold below. LOW_AND_CRITICAL: own low and critical thresholds below. With custom thresholds, tool warnings stay quiet while Auto Mine is running and the tool guard is active.",
+
+	"text.autoconfig.smartautomine.option.lowWarningDurability": "Low warning at durability (0 = disabled)",
+	"text.autoconfig.smartautomine.option.lowWarningDurability.@Tooltip": "Low warning once remaining durability is at or below this absolute value. Repeats every 6 seconds.",
+
+	"text.autoconfig.smartautomine.option.lowWarningDurabilityPercent": "Low warning at durability % (0 = disabled)",
+	"text.autoconfig.smartautomine.option.lowWarningDurabilityPercent.@Tooltip": "Low warning once remaining durability is at or below this percentage. Either this or the absolute value triggers it. Should be higher than the critical threshold.",
+
+	"text.autoconfig.smartautomine.option.criticalWarningDurability": "Critical warning at durability (0 = disabled)",
+	"text.autoconfig.smartautomine.option.criticalWarningDurability.@Tooltip": "Critical warning once remaining durability is at or below this absolute value. Repeats every 5 seconds.",
+
+	"text.autoconfig.smartautomine.option.criticalWarningDurabilityPercent": "Critical warning at durability % (0 = disabled)",
+	"text.autoconfig.smartautomine.option.criticalWarningDurabilityPercent.@Tooltip": "Critical warning once remaining durability is at or below this percentage. Either this or the absolute value triggers it.",
+
+	"text.autoconfig.smartautomine.option.durabilityWarningSound": "Low warning sound",
+	"text.autoconfig.smartautomine.option.durabilityWarningSound.@Tooltip": "Sound event ID. Default is a bundled two-tone chime (smartautomine:durability_gong); any other valid sound event ID works too.",
+
+	"text.autoconfig.smartautomine.option.durabilityCriticalWarningSound": "Critical warning sound",
+	"text.autoconfig.smartautomine.option.durabilityCriticalWarningSound.@Tooltip": "Sound event ID. Default is a bundled alarm (smartautomine:durability_critical); any other valid sound event ID works too. Also used in TOOL_GUARD mode.",
 
 	"text.autoconfig.smartautomine.option.maxDuration": "Max duration (empty = unlimited)",
 	"text.autoconfig.smartautomine.option.maxDuration.@Tooltip": "e.g. '90m', '1.5h', '1h30m'. Auto-disable after this long.",

@@ -5,7 +5,7 @@ the same auto-eat/hunger-safety/duration/durability infrastructure as Smart
 Auto Attack, plus mining-specific features: tool rotation and an
 experimental "place-mine" mode.
 
-Current build: **B0.5.5** (beta), **MC 26.3 only** (26.2 support was
+Current build: **B0.5.6** (beta), **MC 26.3 only** (26.2 support was
 dropped once 26.3 released; 1.20.4 support was dropped earlier, as of
 A0.4). Older 26.2 builds remain available on the
 [Releases](../../releases) page for anyone still on that version. Grab a
@@ -55,12 +55,15 @@ Needs Fabric Loader + **Fabric API**. Also install **Cloth Config API**
 - **Durability warning**: two independent always-on watchdogs (work even
   while the mod itself is off). Tool warning plays a sound when a
   main-hand *or offhand* item matching a user-configured keyword (e.g.
-  `pickaxe`, `axe`) drops below the same Min durability/% threshold above
-  - once on equip, then looping (at most once every 2 seconds) while
-  mining *or* right-click-using it (shearing, tilling, etc.). Armor
+  `pickaxe`, `axe`) is close to breaking - once on equip, then looping
+  while mining *or* right-click-using it (shearing, tilling, etc.). Armor
   warning checks all 4 armor slots + elytra for durability, no keyword
-  needed. Both share a bundled default warning sound (a two-tone gong,
-  distinct from the auto-stop sound below).
+  needed. Both share a **warning mode**: reuse the Min durability/% tool
+  guard (critical alarm only), or custom thresholds (absolute and/or %)
+  with a critical tier only or a low + critical tier. Low plays a bundled
+  chime every 6 seconds, critical a bundled rapid-fire alarm every 5
+  seconds. With custom thresholds, tool warnings stay quiet while Auto
+  Mine is running with an active tool guard.
 - Place-mine mode: right-click tries main-hand then offhand (so a main-hand
   shovel tills existing dirt and the offhand places a new block when there's
   nothing to till) alongside held left-click to mine - a faithful stand-in

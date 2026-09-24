@@ -112,8 +112,44 @@ anywhere in the hotbar.
 
 An always-on watchdog, separate from everything else on this page - it
 runs whether or not Auto Mine itself is toggled on, since its whole point
-is catching you *manually* using a tool the mod would already refuse to
-touch.
+is catching you *manually* using a tool (or wearing armor) that's about to
+break.
+
+### Warning mode
+
+Shared by the tool and armor warnings below. Two warning tiers, each with
+its own sound:
+
+- **Low** - **Low warning sound** (default: a bundled two-tone chime,
+  `smartautomine:durability_gong`), repeats every **6 seconds**.
+- **Critical** - **Critical warning sound** (default: a bundled rapid-fire
+  alarm, `smartautomine:durability_critical`), repeats every **5
+  seconds**.
+
+Both accept any other valid sound event ID too. **Warning mode** picks the
+thresholds:
+
+- **TOOL_GUARD** (default): no thresholds of its own - warns (critical)
+  once an item is at the **Min durability** / **Min durability %** from
+  the Safety tab, i.e. once Auto Mine itself would refuse to use it.
+- **CRITICAL_ONLY**: own **Critical warning at durability** (absolute)
+  and/or **%** threshold.
+- **LOW_AND_CRITICAL**: own low *and* critical thresholds (absolute and/or
+  %). The low threshold should be the higher one - once an item drops
+  past the critical threshold, the critical warning takes over.
+
+Each threshold triggers at or below its absolute value *or* its
+percentage, whichever hits first (0 = that one's disabled) - the same rule
+as the tool guard. Dropping into a worse tier always sounds immediately,
+without waiting for the repeat timer.
+
+**With custom thresholds** (CRITICAL_ONLY / LOW_AND_CRITICAL), the tool
+warning stays quiet while Auto Mine is running *and* the tool guard is
+active (Min durability or Min durability % set), since the guard will
+stop or rotate the tool in time anyway and the warning would otherwise
+fire through the whole run. With the guard disabled (both 0) nothing else
+protects the tool, so the warning stays on. The armor warning is never
+muted this way.
 
 ### Tool warning
 
@@ -121,19 +157,12 @@ Toggle (default: off) + **Warn for tools**: a list of keywords (e.g.
 `pickaxe`, `axe`), matched the same way as **Use more tools**'s KEYWORD
 mode - substring match against the item ID, case-insensitive. Checks
 **both your main hand and offhand** independently. Whenever a held item
-matches one of these keywords *and* its durability is already below the
-**Min durability** / **Min durability %** threshold from the Safety tab
-(the same values the auto-stop/rotation logic uses - there's no separate
-threshold for this), the mod plays **Warning sound** (default is a
-bundled two-tone gong, `smartautomine:durability_gong`, distinct from the
-twin-bell Auto-stop sound so the two are easy to tell apart by ear; any
-other valid sound event ID works too, and it's shared with Armor
-durability warning below):
+matches one of these keywords *and* is in a warning tier, the mod plays
+that tier's sound:
 
 - **Once**, the moment that item becomes held in that hand (switching to
-  it, or its durability dropping below the threshold while already
-  held).
-- **Then repeatedly**, capped at once every 2 seconds, for as long as you
+  it) or drops into a worse tier while already held.
+- **Then repeatedly** (every 6 s low / 5 s critical), for as long as you
   keep holding down **either** attack/mine (left-click) **or** use
   (right-click) with it - so shearing a sheep, tilling dirt, or making
   farmland with a low-durability tool warns you too, not just breaking
@@ -144,12 +173,11 @@ durability warning below):
 Separate toggle (default: off), **Armor durability warning**: checks all
 four armor slots plus the elytra (which occupies the chest slot) for
 durability - no keyword list, since any equipped armor piece counts
-regardless of type. Uses the same Min durability/% threshold and Warning
-sound as the tool warning above. Plays once the moment a piece drops
-below the threshold or gets equipped already below it, then repeats
-(capped at once every 2 seconds) for as long as it stays equipped and low
-- there's no interaction key tied to wearing armor, so unlike the tool
-warning this one isn't gated on attack/use being held.
+regardless of type. Plays once the moment a piece enters a warning tier
+or gets equipped already in one, then repeats (every 6 s low / 5 s
+critical) for as long as it stays equipped - there's no interaction key
+tied to wearing armor, so unlike the tool warning this one isn't gated on
+attack/use being held.
 
 ## Place-mine mode
 

@@ -8,5 +8,10 @@
 		"sounds": [
 			"smartautomine:durability_gong"
 		]
+	},
+	"durability_critical": {
+		"sounds": [
+			"smartautomine:durability_critical"
+		]
 	}
 }

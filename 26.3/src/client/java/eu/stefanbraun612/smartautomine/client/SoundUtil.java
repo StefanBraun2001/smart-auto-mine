@@ -8,7 +8,8 @@ import net.minecraft.sounds.SoundEvent;
 
 public class SoundUtil {
 	// Invalid/unknown sound event IDs simply play nothing rather than erroring.
-	public static void play(Minecraft client, String soundId) {
+	// volume is explicit because forUI's two-argument overload silently plays at 0.25.
+	public static void play(Minecraft client, String soundId, float volume) {
 		Identifier id = Identifier.tryParse(soundId);
 		if (id == null) {
 			return;
@@ -17,6 +18,6 @@ public class SoundUtil {
 		if (sound == null) {
 			return;
 		}
-		client.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f));
+		client.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f, volume));
 	}
 }

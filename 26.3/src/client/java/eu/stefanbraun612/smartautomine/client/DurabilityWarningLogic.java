@@ -13,29 +13,41 @@ import java.util.Map;
 
 /**
  * Always-on watchdog, independent of the mod's own enabled toggle: warns (by sound) when
- * a held or worn item is already below the Min durability/% threshold that would make Auto
- * Mine itself refuse to use it. Two independent toggles:
+ * a held or worn item is close to breaking. Two independent toggles:
  * - Tool warning (durabilityWarningEnabled): main hand + offhand, filtered by keyword list.
  * - Armor warning (armorDurabilityWarningEnabled): all 4 armor slots (elytra included, since
  *   it occupies the chest slot), no keyword filter - any equipped item counts.
- * Plays once on equip, then loops (capped at once every 2 seconds) while a held slot is in
- * use (attack or use key) or, for armor, just periodically while still equipped and low.
+ * Both share durabilityWarningMode, which decides the thresholds: the Min durability/% tool
+ * guard (critical tier only), or custom critical / low + critical thresholds.
+ * Plays once on equip or when an item drops into a worse tier, then loops (low every 6 s,
+ * critical every 5 s) while a held slot is in use (attack or use key) or, for armor, just
+ * periodically while still equipped and low.
  */
 public class DurabilityWarningLogic {
-	private static final int SOUND_COOLDOWN_TICKS = 40; // 20 ticks/sec * 2 sec between plays
+	private static final int LOW_SOUND_COOLDOWN_TICKS = 120; // 20 ticks/sec * 6 sec
+	private static final int CRITICAL_SOUND_COOLDOWN_TICKS = 100; // 20 ticks/sec * 5 sec
 
 	private static final EquipmentSlot[] ARMOR_SLOTS = {
 			EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
 	};
 
+	// Ordered by severity - ordinal comparison detects an item dropping into a worse tier.
+	private enum Tier {
+		NONE,
+		LOW,
+		CRITICAL
+	}
+
 	private static class SlotState {
 		int lastHotbarSlot = -1; // only meaningful for MAINHAND - see tickHeldSlot()
 		Item lastItem = null;
+		Tier lastTier = Tier.NONE;
 		int soundCooldownTicks = 0;
 
 		void reset() {
 			lastHotbarSlot = -1;
 			lastItem = null;
+			lastTier = Tier.NONE;
 			soundCooldownTicks = 0;
 		}
 	}
@@ -60,8 +72,9 @@ public class DurabilityWarningLogic {
 
 		if (config.durabilityWarningEnabled) {
 			boolean inUse = client.options.keyAttack.isDown() || client.options.keyUse.isDown();
-			tickHeldSlot(client, player, config, EquipmentSlot.MAINHAND, player.getInventory().getSelectedSlot(), inUse);
-			tickHeldSlot(client, player, config, EquipmentSlot.OFFHAND, -1, inUse);
+			boolean suppressed = isToolWarningSuppressed(config);
+			tickHeldSlot(client, player, config, EquipmentSlot.MAINHAND, player.getInventory().getSelectedSlot(), inUse, suppressed);
+			tickHeldSlot(client, player, config, EquipmentSlot.OFFHAND, -1, inUse, suppressed);
 		} else {
 			STATES.get(EquipmentSlot.MAINHAND).reset();
 			STATES.get(EquipmentSlot.OFFHAND).reset();
@@ -78,10 +91,21 @@ public class DurabilityWarningLogic {
 		}
 	}
 
+	// Custom thresholds are usually set above the tool guard, so while Auto Mine itself is
+	// running they'd keep firing on a tool it's still safely allowed to use - the guard will
+	// stop/rotate it in time anyway. Only when the guard is actually effective, though: with
+	// it disabled (0/0) nothing else protects the tool, so the warning stays audible.
+	// Armor isn't covered by the tool guard, so this never applies to it.
+	private static boolean isToolWarningSuppressed(SmartAutoMineConfig config) {
+		return config.durabilityWarningMode != SmartAutoMineConfig.DurabilityWarningMode.TOOL_GUARD
+				&& SmartAutoMineClient.isEnabled()
+				&& (config.minDurability > 0 || config.minDurabilityPercent > 0);
+	}
+
 	// hotbarSlot is only meaningful for MAINHAND (its selected hotbar index) - pass -1 for
 	// OFFHAND, which has no such concept and relies on item identity alone.
 	private static void tickHeldSlot(Minecraft client, Player player, SmartAutoMineConfig config,
-			EquipmentSlot slot, int hotbarSlot, boolean inUse) {
+			EquipmentSlot slot, int hotbarSlot, boolean inUse, boolean suppressed) {
 		SlotState state = STATES.get(slot);
 		if (state.soundCooldownTicks > 0) {
 			state.soundCooldownTicks--;
@@ -95,16 +119,18 @@ public class DurabilityWarningLogic {
 		state.lastItem = item;
 		state.lastHotbarSlot = hotbarSlot;
 
-		if (!matchesAnyKeyword(held, config) || AutoMineLogic.hasEnoughDurability(held, config)) {
+		Tier tier = matchesAnyKeyword(held, config) ? tierOf(held, config) : Tier.NONE;
+		boolean escalated = tier.ordinal() > state.lastTier.ordinal();
+		state.lastTier = tier;
+
+		if (tier == Tier.NONE || suppressed) {
 			return;
 		}
 
-		if (justEquipped) {
-			SoundUtil.play(client, config.durabilityWarningSound);
-			soundStartsCooldown(state); // still starts the cooldown so an immediate re-equip can't double-fire
-		} else if (state.soundCooldownTicks <= 0 && inUse) {
-			SoundUtil.play(client, config.durabilityWarningSound);
-			soundStartsCooldown(state);
+		// Equip/escalation plays regardless of cooldown (but still restarts it, so an
+		// immediate re-equip can't double-fire); otherwise loop only while in use.
+		if (justEquipped || escalated || (state.soundCooldownTicks <= 0 && inUse)) {
+			playWarning(client, config, state, tier);
 		}
 	}
 
@@ -121,18 +147,45 @@ public class DurabilityWarningLogic {
 		boolean justEquipped = item != state.lastItem;
 		state.lastItem = item;
 
-		if (worn.isEmpty() || AutoMineLogic.hasEnoughDurability(worn, config)) {
+		Tier tier = worn.isEmpty() ? Tier.NONE : tierOf(worn, config);
+		boolean escalated = tier.ordinal() > state.lastTier.ordinal();
+		state.lastTier = tier;
+
+		if (tier == Tier.NONE) {
 			return;
 		}
 
-		if (justEquipped || state.soundCooldownTicks <= 0) {
-			SoundUtil.play(client, config.durabilityWarningSound);
-			soundStartsCooldown(state);
+		if (justEquipped || escalated || state.soundCooldownTicks <= 0) {
+			playWarning(client, config, state, tier);
 		}
 	}
 
-	private static void soundStartsCooldown(SlotState state) {
-		state.soundCooldownTicks = SOUND_COOLDOWN_TICKS;
+	private static Tier tierOf(ItemStack stack, SmartAutoMineConfig config) {
+		switch (config.durabilityWarningMode) {
+			case TOOL_GUARD:
+				return AutoMineLogic.isDurabilityAtOrBelow(stack, config.minDurability, config.minDurabilityPercent)
+						? Tier.CRITICAL : Tier.NONE;
+			case CRITICAL_ONLY:
+				return AutoMineLogic.isDurabilityAtOrBelow(stack, config.criticalWarningDurability, config.criticalWarningDurabilityPercent)
+						? Tier.CRITICAL : Tier.NONE;
+			case LOW_AND_CRITICAL:
+			default:
+				if (AutoMineLogic.isDurabilityAtOrBelow(stack, config.criticalWarningDurability, config.criticalWarningDurabilityPercent)) {
+					return Tier.CRITICAL;
+				}
+				return AutoMineLogic.isDurabilityAtOrBelow(stack, config.lowWarningDurability, config.lowWarningDurabilityPercent)
+						? Tier.LOW : Tier.NONE;
+		}
+	}
+
+	private static void playWarning(Minecraft client, SmartAutoMineConfig config, SlotState state, Tier tier) {
+		if (tier == Tier.CRITICAL) {
+			SoundUtil.play(client, config.durabilityCriticalWarningSound, 1.0f);
+			state.soundCooldownTicks = CRITICAL_SOUND_COOLDOWN_TICKS;
+		} else {
+			SoundUtil.play(client, config.durabilityWarningSound, 1.0f);
+			state.soundCooldownTicks = LOW_SOUND_COOLDOWN_TICKS;
+		}
 	}
 
 	private static boolean matchesAnyKeyword(ItemStack stack, SmartAutoMineConfig config) {

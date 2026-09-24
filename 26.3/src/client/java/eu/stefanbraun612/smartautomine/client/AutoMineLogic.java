@@ -382,7 +382,7 @@ public class AutoMineLogic {
 		if (!config.playSoundOnAutoStop) {
 			return;
 		}
-		SoundUtil.play(client, config.autoStopSound);
+		SoundUtil.play(client, config.autoStopSound, 0.7f);
 	}
 
 	private static boolean passesHungerSafety(Player player, SmartAutoMineConfig config) {
@@ -552,29 +552,35 @@ public class AutoMineLogic {
 			// tool equipped and mining bare-handed is never actually useful here.
 			return false;
 		}
-		if (config.minDurability <= 0 && config.minDurabilityPercent <= 0) {
-			return true;
+		return !isDurabilityAtOrBelow(stack, config.minDurability, config.minDurabilityPercent);
+	}
+
+	// Whether a (non-empty) stack's remaining durability is at or below either threshold
+	// (0 = that threshold disabled). Also used by DurabilityWarningLogic's custom tiers.
+	static boolean isDurabilityAtOrBelow(ItemStack stack, int absolute, int percentThreshold) {
+		if (absolute <= 0 && percentThreshold <= 0) {
+			return false;
 		}
 		int maxDamage = stack.getMaxDamage();
 		if (maxDamage <= 0) {
-			return true; // item has no durability (e.g. bare hand, unbreakable tool)
+			return false; // item has no durability (e.g. bare hand, unbreakable tool)
 		}
 		int remaining = maxDamage - stack.getDamageValue();
-		// <= (not <): minDurability/minDurabilityPercent represent uses left to
-		// preserve, so the guard must trip *at* the threshold, before that last
-		// use is spent - otherwise the tool consumes its final durability point
-		// and breaks (or, for "use more tools", vanishes to an empty stack that
-		// then falsely reads as "no durability restriction" and never rotates).
-		if (config.minDurability > 0 && remaining <= config.minDurability) {
-			return false;
+		// <= (not <): the thresholds represent uses left to preserve, so the guard must
+		// trip *at* the threshold, before that last use is spent - otherwise the tool
+		// consumes its final durability point and breaks (or, for "use more tools",
+		// vanishes to an empty stack that then falsely reads as "no durability
+		// restriction" and never rotates).
+		if (absolute > 0 && remaining <= absolute) {
+			return true;
 		}
-		if (config.minDurabilityPercent > 0) {
+		if (percentThreshold > 0) {
 			float percent = (remaining * 100f) / maxDamage;
-			if (percent <= config.minDurabilityPercent) {
-				return false;
+			if (percent <= percentThreshold) {
+				return true;
 			}
 		}
-		return true;
+		return false;
 	}
 
 	// Changing Inventory.selectedSlot alone only updates the client's local view -

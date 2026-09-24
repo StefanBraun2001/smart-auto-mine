@@ -33,21 +33,44 @@ public class SmartAutoMineConfig implements ConfigData {
 
 	// --- Durability warning ---
 	// Runs independently of the toggle above - an always-on watchdog for accidentally
-	// hand-using a tool that would already fail the Min durability/% guard, even while
-	// this mod isn't mining with it. Reuses that same threshold rather than a separate
-	// one. Mutually exclusive with Smart Auto Attack's equivalent feature if installed -
-	// see SmartAutoMineConfigScreen's error supplier on durabilityWarningEnabled.
+	// hand-using a tool (or wearing armor) that's close to breaking, even while this mod
+	// isn't mining with it.
 
 	public boolean durabilityWarningEnabled = false;
 
 	public List<String> durabilityWarningKeywords = new ArrayList<>(); // e.g. "pickaxe", "axe" - substring match, same as toolKeyword
 
-	public String durabilityWarningSound = "smartautomine:durability_gong"; // full sound event ID - bundled two-tone gong, or any other valid sound event ID
-
 	// Separate toggle: checks all 4 armor slots (+ elytra, which occupies the chest slot)
 	// for durability regardless of item type - no keyword list, since "is this a helmet"
-	// isn't a meaningful question the way "is this a pickaxe" is. Shares durabilityWarningSound.
+	// isn't a meaningful question the way "is this a pickaxe" is. Shares the mode/thresholds/sounds below.
 	public boolean armorDurabilityWarningEnabled = false;
+
+	// Which thresholds the warning fires at. Shared by the tool and armor warnings.
+	public enum DurabilityWarningMode {
+		// Reuses the Min durability/% guard from the Safety tab - warns (critical sound) once
+		// an item would already fail it.
+		TOOL_GUARD,
+		// Own critical threshold only (critical sound).
+		CRITICAL_ONLY,
+		// Own low + critical thresholds: low sound first, critical sound once lower still.
+		LOW_AND_CRITICAL
+	}
+
+	public DurabilityWarningMode durabilityWarningMode = DurabilityWarningMode.TOOL_GUARD;
+
+	// Custom thresholds (0 = disabled) - an item counts as "at" a tier once its remaining
+	// durability is at or below either the absolute value or the percentage, same rule as the guard.
+	public int lowWarningDurability = 0;
+
+	public int lowWarningDurabilityPercent = 25;
+
+	public int criticalWarningDurability = 0;
+
+	public int criticalWarningDurabilityPercent = 10;
+
+	public String durabilityWarningSound = "smartautomine:durability_gong"; // low-tier sound - full sound event ID, bundled two-tone gong or any other valid sound event ID
+
+	public String durabilityCriticalWarningSound = "smartautomine:durability_critical"; // critical-tier sound (also used in TOOL_GUARD mode) - bundled alarm by default
 
 	// --- Timing ---
 
